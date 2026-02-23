@@ -1,49 +1,101 @@
 const z = require("zod");
 
+const VERIFY_ACTIONS = require("../../consts/verify-action");
+
 module.exports = {
+    sendOTPRequest: z.object({
+        email: z
+            .email({ error: "Sai định dạng." }),
+        action: z
+            .enum(
+                Object.values(VERIFY_ACTIONS),
+                { error: "Sai định dạng." }
+            )
+    }),
+
     signUpRequest: z.object({
         name: z
             .string()
             .trim()
-            .min(1, { error: "Tên người dùng đang trống." })
-            .max(30, { error: "Tên người dùng tối đa 30 ký tự." }),
+            .min(1, { error: "Không thể để trống." })
+            .max(100, { error: "Không thể vượt quá 100 ký tự." }),
         email: z
-            .email({ error: "Email không đúng định dạng." }),
+            .email({ error: "Sai định dạng." }),
         otp: z
             .string()
             .trim()
-            .length(6, { error: "Mã OTP cần đúng 6 ký tự." })
-            .regex(/^\d+$/, { error: "Mã OTP chỉ được chứa số." }),
+            .regex(
+                /^\d{6}$/,
+                { error: "Sai định dạng." }
+            ),
         password: z
             .string()
             .trim()
-            .min(8, { error: "Mật khẩu tối thiểu 8 ký tự." })
-            .max(64, { error: "Mật khẩu tối đa 64 ký tự." }),
+            .min(8, { error: "Quá ngắn." })
+            .max(100, { error: "Quá dài." }),
         passwordConfirmation: z
             .string()
             .trim()
-            .min(8, { error: "Mật khẩu xác nhận tối thiểu 8 ký tự." })
-            .max(64, { error: "Mật khẩu xác nhận tối đa 64 ký tự." })
+            .min(1, { error: "Không thể để trống." })
     })
-        .refine(data => data.password === data.passwordConfirmation, {
+        .refine((data) => data.password === data.passwordConfirmation, {
+            error: "Không khớp",
             path: ["passwordConfirmation"],
-            message: "Mật khẩu xác nhận không khớp."
         }),
 
     signInRequest: z.object({
         email: z
-            .email({ error: "Email không đúng định dạng." }),
+            .email({ error: "Sai định dạng." }),
         password: z
             .string()
             .trim()
-            .min(8, { error: "Mật khẩu tối thiểu 8 ký tự." })
-            .max(64, { error: "Mật khẩu tối đa 64 ký tự." })
+            .min(1, { error: "Không thể để trống." })
+            .max(100, { error: "Quá dài." }),
     }),
 
     signInResponse: z.object({
         accessToken: z
-            .uuidv4({ error: "Phiên đăng nhập không hợp lệ." }),
+            .jwt({ error: "Sai định dạng." }),
         refreshToken: z
-            .uuidv4({ error: "Phiên đăng nhập không hợp lệ." })
+            .jwt({ error: "Sai định dạng." })
     }),
+
+    resetPasswordRequest: z.object({
+        email: z
+            .email({ error: "Sai định dạng." }),
+        otp: z
+            .string()
+            .trim()
+            .regex(
+                /^\d{6}$/,
+                { error: "Sai định dạng." }
+            ),
+        password: z
+            .string()
+            .trim()
+            .min(8, { error: "Quá ngắn." })
+            .max(100, { error: "Quá dài." }),
+        passwordConfirmation: z
+            .string()
+            .trim()
+            .min(1, { error: "Không thể để trống." })
+    })
+        .refine((data) => data.password === data.passwordConfirmation, {
+            error: "Không khớp",
+            path: ["passwordConfirmation"],
+        }),
+
+    oauthSignInRequest: z.object({
+        exchangeToken: z
+            .string()
+            .trim()
+            .length(12, { error: "Sai định dạng." })
+    }),
+
+    oauthSignInResponse: z.object({
+        accessToken: z
+            .jwt({ error: "Sai định dạng." }),
+        refreshToken: z
+            .jwt({ error: "Sai định dạng." })
+    })
 }

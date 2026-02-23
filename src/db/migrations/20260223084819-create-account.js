@@ -19,27 +19,19 @@ module.exports = {
                     model: "users",
                     key: "id"
                 },
-                onDelete: "CASCADE"
+                onDelete: "CASCADE",
+                onUpdate: "CASCADE"
             },
             provider: {
                 type: Sequelize.STRING,
                 allowNull: false
             },
-            provider_account_id: {
+            provider_id: {
                 type: Sequelize.TEXT,
                 allowNull: false
             },
             password: {
                 type: Sequelize.STRING
-            },
-            otp: {
-                type: Sequelize.TEXT
-            },
-            otp_type: {
-                type: Sequelize.STRING
-            },
-            otp_expires_at: {
-                type: Sequelize.DATE
             },
             created_at: {
                 allowNull: false,
@@ -51,6 +43,7 @@ module.exports = {
             }
         });
     },
+
     async down(queryInterface, Sequelize) {
         await queryInterface.dropTable('accounts');
     }

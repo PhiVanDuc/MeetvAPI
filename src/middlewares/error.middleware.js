@@ -3,7 +3,7 @@ module.exports = (error, req, res, next) => {
     const message = error.message || "Lỗi server nội bộ!";
     const data = error.data;
 
-    if (status === 500) console.error(error);
+    console.error(error);
 
     res.status(status).json({
         success: false,

@@ -1,12 +1,13 @@
+const otpTemplate = require("./templates/otp");
 const transporter = require("../../configs/transporter");
-const otpTemplate = require("./templates/otp-template");
+const EMAIL_TEMPLATE = require("../../consts/email-templates");
 
 module.exports = async ({ emailTemplate, emailTo, data }) => {
     try {
         let content = { subject: "", html: "" };
 
         switch (emailTemplate) {
-            case "otp-template":
+            case EMAIL_TEMPLATE.OTP:
                 content = otpTemplate(data);
                 break;
         }

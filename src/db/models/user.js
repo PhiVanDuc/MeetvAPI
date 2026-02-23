@@ -5,9 +5,10 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class User extends Model {
         static associate(models) {
-            User.hasMany(models.Account, {
-                foreignKey: "userId"
-            });
+            User.hasMany(models.Accounts, {
+                foreignKey: "userId",
+                as: "accounts"
+            })
         }
     }
 
@@ -20,22 +21,16 @@ module.exports = (sequelize, DataTypes) => {
                 primaryKey: true,
                 defaultValue: DataTypes.UUIDV4
             },
-            image: {
-                type: DataTypes.TEXT,
-            },
             name: {
                 type: DataTypes.STRING,
                 allowNull: false
             },
             email: {
                 type: DataTypes.STRING,
-                allowNull: false,
-                unique: true
+                allowNull: false
             },
-            emailVerified: {
-                type: DataTypes.BOOLEAN,
-                allowNull: false,
-                defaultValue: false
+            image: {
+                type: DataTypes.TEXT
             }
         },
         {

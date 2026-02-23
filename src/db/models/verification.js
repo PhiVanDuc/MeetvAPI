@@ -3,16 +3,11 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class Account extends Model {
-        static associate(models) {
-            Account.belongsTo(models.User, {
-                foreignKey: "userId",
-                as: "user"
-            })
-        }
+    class Verification extends Model {
+        static associate(models) {}
     }
 
-    Account.init(
+    Verification.init(
         {
             id: {
                 type: DataTypes.UUID,
@@ -21,29 +16,30 @@ module.exports = (sequelize, DataTypes) => {
                 primaryKey: true,
                 defaultValue: DataTypes.UUIDV4
             },
-            userId: {
-                type: DataTypes.UUID,
-                allowNull: false
-            },
-            provider: {
+            identifier: {
                 type: DataTypes.STRING,
                 allowNull: false
             },
-            providerId: {
-                type: DataTypes.TEXT,
+            value: {
+                type: DataTypes.STRING,
                 allowNull: false
             },
-            password: {
-                type: DataTypes.STRING
+            expiresAt: {
+                type: DataTypes.DATE,
+                allowNull: false
+            },
+            action: {
+                type: DataTypes.STRING,
+                allowNull: false
             }
         },
         {
             sequelize,
-            modelName: "Account",
-            tableName: "accounts",
+            modelName: "Verification",
+            tableName: "verifications",
             timestamps: true,
             underscored: true
         }
     );
-    return Account;
+    return Verification;
 };
