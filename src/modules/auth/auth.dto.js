@@ -1,6 +1,6 @@
 const z = require("zod");
 
-const VERIFY_ACTIONS = require("../../consts/verify-action");
+const VERIFICATION_ACTIONS = require("../../consts/verification-actions");
 
 module.exports = {
     sendOTPRequest: z.object({
@@ -8,7 +8,7 @@ module.exports = {
             .email({ error: "Sai định dạng." }),
         action: z
             .enum(
-                Object.values(VERIFY_ACTIONS),
+                Object.values(VERIFICATION_ACTIONS),
                 { error: "Sai định dạng." }
             )
     }),
@@ -85,11 +85,18 @@ module.exports = {
             path: ["passwordConfirmation"],
         }),
 
+    googleCallbackResponse: z.object({
+        exchangeToken: z
+            .string()
+            .trim()
+            .regex(/^[0-9a-fA-F]{64}$/, "Sai định dạng.")
+    }),
+
     oauthSignInRequest: z.object({
         exchangeToken: z
             .string()
             .trim()
-            .length(12, { error: "Sai định dạng." })
+            .regex(/^[0-9a-fA-F]{64}$/, "Sai định dạng.")
     }),
 
     oauthSignInResponse: z.object({

@@ -1,40 +1,29 @@
 module.exports = (model) => {
-    const create = async ({ data, options }) => {
-        return await model.create(data, options)
+    const add = async ({ data, options }) => {
+        return model.create(data, options);
     }
 
-    const update = async ({ id, data, options }) => {
-        return model.update(data, {
-            where: { id },
-            ...options
-        });
+    const update = async ({ data, options }) => {
+        return model.update(data, options);
     }
 
-    const destroy = async ({ id, options }) => {
-        return model.destroy({
-            where: { id },
-            ...options
-        });
+    const destroy = async (options) => {
+        return model.destroy(options);
+    }
+
+    const find = async (options) => {
+        return model.findOne(options);
     }
 
     const findAll = async (options) => {
         return model.findAll(options);
     }
 
-    const findOne = async (options) => {
-        return model.findOne(options);
-    }
-
-    const findById = async ({ id, options }) => {
-        return model.findByPk(id, options);
-    }
-
     return {
-        create,
+        add,
         update,
         destroy,
+        find,
         findAll,
-        findOne,
-        findById
     }
 }

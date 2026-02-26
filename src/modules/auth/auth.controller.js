@@ -1,4 +1,4 @@
-const authDto = require("./auth.dto");
+const authDTO = require("./auth.dto");
 const authService = require("./auth.service");
 const { passport } = require("../../configs/passport");
 
@@ -8,7 +8,7 @@ module.exports = {
     sendOTP: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDto.sendOTPRequest.parse(body);
+            const data = authDTO.sendOTPRequest.parse(body);
 
             await authService.sendOTP(data);
 
@@ -22,7 +22,7 @@ module.exports = {
     signUp: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDto.signUpRequest.parse(body);
+            const data = authDTO.signUpRequest.parse(body);
 
             await authService.signUp(data);
 
@@ -36,7 +36,7 @@ module.exports = {
     signIn: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDto.signInRequest.parse(body);
+            const data = authDTO.signInRequest.parse(body);
 
             const responseData = await authService.signIn(data);
 
@@ -51,7 +51,7 @@ module.exports = {
     resetPassword: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDto.resetPasswordRequest.parse(body);
+            const data = authDTO.resetPasswordRequest.parse(body);
 
             await authService.resetPassword(data);
 
@@ -87,7 +87,7 @@ module.exports = {
     oauthSignIn: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDto.oauthSignInRequest.parse(body);
+            const data = authDTO.oauthSignInRequest.parse(body);
 
             const responseData = await authService.oauthSignIn(data);
 

@@ -5,7 +5,7 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
     class User extends Model {
         static associate(models) {
-            User.hasMany(models.Accounts, {
+            User.hasMany(models.Account, {
                 foreignKey: "userId",
                 as: "accounts"
             })
@@ -27,7 +27,7 @@ module.exports = (sequelize, DataTypes) => {
             },
             email: {
                 type: DataTypes.STRING,
-                allowNull: false
+                unique: true
             },
             image: {
                 type: DataTypes.TEXT
