@@ -19,11 +19,16 @@ module.exports = (model) => {
         return model.findAll(options);
     }
 
+    const findById = async ({ id, options }) => {
+        return model.findByPk(id, options)
+    }
+
     return {
         add,
         update,
         destroy,
         find,
         findAll,
+        findById
     }
 }

@@ -1,36 +1,39 @@
+const { sequelize } = require("../../db/models/index");
 const userRepository = require("../users/user.repository");
-const { User, Account, sequelize } = require("../../db/models/index");
 const accountRepository = require("../accounts/account.repository");
 const verificationRepository = require("../verifications/verification.repository");
 
-const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const authDTO = require("./auth.dto");
-const { signJwt } = require("../../libs/jwt");
+const { signJWT } = require("../../libs/jwt");
+const hashOTP = require("../../utils/hash-otp");
+const generateOTP = require("../../utils/generate-otp");
 const sendEmail = require("../../libs/email/send-email");
-const throwHttpError = require("../../utils/throw-http-error");
+const generateExpiry = require("../../utils/generate-expiry");
+const throwHTTPError = require("../../utils/throw-http-error");
 
+const SALT = 10;
 const PROVIDERS = require("../../consts/providers");
 const EMAIL_TEMPLATES = require("../../consts/email-templates");
 const VERIFICATION_ACTIONS = require("../../consts/verification-actions");
 
 module.exports = {
     sendOTP: async (data) => {
+        const otp = generateOTP();
         const transaction = await sequelize.transaction();
-        const otp = crypto.randomInt(100000, 1000000).toString();
 
         try {
             await verificationRepository.destroy({
-                transaction,
-                where: { identifier: data.email }
+                where: { identifier: data.email },
+                transaction
             });
 
             await verificationRepository.add({
                 data: {
+                    value: hashOTP(otp),
                     action: data.action,
                     identifier: data.email,
-                    expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-                    value: crypto.createHash('sha256').update(otp).digest('hex')
+                    expiresAt: generateExpiry({ time: 5 })
                 },
                 options: { transaction }
             });
@@ -55,34 +58,33 @@ module.exports = {
 
         try {
             const otp = await verificationRepository.find({
-                transaction,
                 where: {
                     identifier: data.email,
-                    action: VERIFICATION_ACTIONS.SIGN_UP,
-                    value: crypto.createHash('sha256').update(data.otp).digest('hex')
-                }
+                    value: hashOTP(data.otp),
+                    action: VERIFICATION_ACTIONS.SIGN_UP
+                },
+                transaction
             });
 
-            if (!otp) throwHttpError({ status: 400, message: "Mã OTP không hợp lệ." });
-            if (new Date() > otp.expiresAt) throwHttpError({ status: 400, message: "Mã OTP đã hết hạn." });
+            if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không hợp lệ." });
+            if (new Date() > otp.expiresAt) throwHTTPError({ status: 400, message: "Mã OTP đã hết hạn." });
 
             const user = await userRepository.find({
-                transaction,
-                where: { email: data.email }
+                where: { email: data.email },
+                transaction
             });
 
             if (user) {
                 const account = await accountRepository.find({
-                    transaction,
                     where: {
                         userId: user.id,
-                        providerId: user.id,
                         provider: PROVIDERS.CREDENTIALS
-                    }
+                    },
+                    transaction
                 });
 
                 userId = user.id;
-                if (account) throwHttpError({ status: 409, message: "Một tài khoản đã được đăng ký với email hiện tại." });
+                if (account) throwHTTPError({ status: 409, message: "Một tài khoản đã được đăng ký với email hiện tại." });
             }
 
             if (!user) {
@@ -102,14 +104,14 @@ module.exports = {
                     userId,
                     providerId: userId,
                     provider: PROVIDERS.CREDENTIALS,
-                    password: await bcrypt.hash(data.password, 10)
+                    password: await bcrypt.hash(data.password, SALT)
                 },
                 options: { transaction }
             });
 
             await verificationRepository.destroy({
-                transaction,
-                where: { identifier: data.email }
+                where: { identifier: data.email },
+                transaction
             });
 
             await transaction.commit();
@@ -120,25 +122,91 @@ module.exports = {
         }
     },
 
+    resetPassword: async (data) => {
+        const transaction = await sequelize.transaction();
+
+        try {
+            const otp = await verificationRepository.find({
+                where: {
+                    identifier: data.email,
+                    value: hashOTP(data.otp),
+                    action: VERIFICATION_ACTIONS.RESET_PASSWORD
+                },
+                transaction
+            });
+
+            if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không hợp lệ." });
+            if (new Date() > otp.expiresAt) throwHTTPError({ status: 400, message: "Mã OTP đã hết hạn." });
+
+            const user = await userRepository.find({
+                where: { email: data.email },
+                transaction
+            });
+
+            if (!user) throwHTTPError({ status: 409, message: "Không có tài khoản nào được đăng ký với email hiện tại." });
+
+            const account = await accountRepository.find({
+                where: {
+                    userId: user.id,
+                    provider: PROVIDERS.CREDENTIALS
+                },
+                transaction
+            });
+
+            const hashedPassword = await bcrypt.hash(data.password, SALT);
+
+            if (!account) {
+                await accountRepository.add({
+                    data: {
+                        userId: user.id,
+                        providerId: user.id,
+                        password: hashedPassword,
+                        provider: PROVIDERS.CREDENTIALS
+                    },
+                    options: { transaction }
+                });
+            }
+            else {
+                await accountRepository.update({
+                    data: { password: hashedPassword },
+                    options: {
+                        where: { id: account.id },
+                        transaction
+                    }
+                });
+            }
+
+            await verificationRepository.destroy({
+                where: { identifier: data.email },
+                transaction
+            });
+
+            await transaction.commit();
+        }
+        catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    },
+
     signIn: async (data) => {
         const user = await userRepository.find({
             where: { email: data.email }
         });
 
-        if (!user) throwHttpError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
+        if (!user) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
 
         const account = await accountRepository.find({
             where: {
                 userId: user.id,
-                providerId: user.id,
                 provider: PROVIDERS.CREDENTIALS
             }
         });
 
-        if (!account) throwHttpError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
-        if (!await bcrypt.compare(data.password, account.password)) throwHttpError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
+        if (!account) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
+        if (!await bcrypt.compare(data.password, account.password)) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
 
-        const accessToken = signJwt({
+        const accessToken = signJWT({
             expiresIn: "10m",
             payload: {
                 id: user.id,
@@ -150,7 +218,7 @@ module.exports = {
             }
         });
 
-        const refreshToken = signJwt({
+        const refreshToken = signJWT({
             expiresIn: "30d",
             payload: {
                 id: user.id,
@@ -160,198 +228,4 @@ module.exports = {
 
         return authDTO.signInResponse.parse({ accessToken, refreshToken });
     },
-
-    resetPassword: async (data) => {
-        const transaction = await sequelize.transaction();
-
-        try {
-            const otp = await verificationRepository.find({
-                transaction,
-                where: {
-                    identifier: data.email,
-                    action: VERIFICATION_ACTIONS.RESET_PASSWORD,
-                    value: crypto.createHash('sha256').update(data.otp).digest('hex')
-                }
-            });
-
-            if (!otp) throwHttpError({ status: 400, message: "Mã OTP không hợp lệ." });
-            if (new Date() > otp.expiresAt) throwHttpError({ status: 400, message: "Mã OTP đã hết hạn." });
-
-            const user = await userRepository.find({
-                transaction,
-                where: { email: data.email }
-            });
-
-            if (!user) throwHttpError({ status: 409, message: "Không có tài khoản nào được đăng ký với email hiện tại." });
-
-            const account = await accountRepository.find({
-                transaction,
-                where: {
-                    userId: user.id,
-                    providerId: user.id,
-                    provider: PROVIDERS.CREDENTIALS
-                }
-            });
-
-            const hashedPassword = await bcrypt.hash(data.password, 10);
-
-            if (!account) {
-                await accountRepository.add({
-                    options: { transaction },
-                    data: {
-                        userId: user.id,
-                        providerId: user.id,
-                        password: hashedPassword,
-                        provider: PROVIDERS.CREDENTIALS
-                    }
-                });
-            }
-            else {
-                await accountRepository.update({
-                    data: { password: hashedPassword },
-                    options: {
-                        transaction,
-                        where: { id: account.id }
-                    }
-                });
-            }
-
-            await verificationRepository.destroy({
-                transaction,
-                where: { identifier: data.email }
-            });
-
-            await transaction.commit();
-        }
-        catch (error) {
-            await transaction.rollback();
-            throw error;
-        }
-    },
-
-    googleCallback: async (data) => {
-        let user;
-        const transaction = await sequelize.transaction();
-        const exchangeToken = crypto.randomBytes(32).toString('hex');
-
-        try {
-            if (!data._json.email_verified) throwHttpError({ status: 401, message: "Email của tài khoản Google chưa được xác minh." });
-
-            const account = await accountRepository.find({
-                transaction,
-                where: {
-                    providerId: data.id,
-                    provider: PROVIDERS.GOOGLE
-                },
-                include: {
-                    as: "user",
-                    model: User
-                }
-            });
-
-            if (account) user = account.user;
-            else {
-                user = await userRepository.find({
-                    transaction,
-                    where: { email: data._json.email }
-                });
-
-                if (!user) {
-                    user = await userRepository.add({
-                        options: { transaction },
-                        data: {
-                            name: data._json.name,
-                            email: data._json.email,
-                            image: data._json.picture
-                        }
-                    });
-                }
-
-                await accountRepository.add({
-                    options: { transaction },
-                    data: {
-                        userId: user.id,
-                        providerId: data.id,
-                        provider: PROVIDERS.GOOGLE
-                    }
-                });
-            }
-
-            await verificationRepository.destroy({
-                transaction,
-                where: { identifier: user.id }
-            });
-
-            await verificationRepository.add({
-                options: { transaction },
-                data: {
-                    identifier: user.id,
-                    value: exchangeToken,
-                    action: VERIFICATION_ACTIONS.SIGN_IN_GOOGLE,
-                    expiresAt: new Date(Date.now() + 2 * 60 * 1000)
-                }
-            });
-
-            await transaction.commit();
-            return authDTO.googleCallbackResponse.parse(exchangeToken);
-        }
-        catch(error) {
-            await transaction.rollback();
-            throw error;
-        }
-    },
-
-    oauthSignIn: async (data) => {
-        const transaction = await sequelize.transaction();
-
-        try {
-            const exchangeToken = await verificationRepository.find({
-                transaction,
-                where: {
-                    value: data.exchangeToken,
-                    action: VERIFICATION_ACTIONS.SIGN_IN_GOOGLE
-                }
-            });
-
-            if (exchangeToken) throwHttpError({ status: 401, message: "Token xác thực không hợp lệ." });
-            if (new Date() > exchangeToken.expiresAt) throwHttpError({ status: 401, message: "Token xác thực đã hết hạn." });
-
-            const user = await userRepository.find({
-                transaction,
-                where: { id: exchangeToken.identifier },
-                include: {
-                    as: "accounts",
-                    model: Account,
-                    where: { provider: PROVIDERS.GOOGLE }
-                }
-            });
-
-            const accessToken = signJwt({
-                expiresIn: "10m",
-                payload: {
-                    id: user.id,
-                    name: user.name,
-                    email: user.email,
-                    image: user.image,
-                    accountId: user.accounts[0].id,
-                    provider: user.accounts[0].provider
-                }
-            });
-
-            const refreshToken = signJwt({
-                expiresIn: "30d",
-                payload: {
-                    id: user.id,
-                    accountId: user.accounts[0].id
-                }
-            });
-
-            await transaction.commit();
-            return authDTO.oauthSignInResponse.parse({ accessToken, refreshToken });
-        }
-        catch(error) {
-            await transaction.rollback();
-            throw error;
-        }
-    }
 }

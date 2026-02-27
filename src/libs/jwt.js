@@ -1,9 +1,9 @@
 const jsonwebtoken = require("jsonwebtoken");
 const JWT_SECRET = process.env.JWT_SECRET;
 
-const signJwt = ({ payload, expiresIn }) => jsonwebtoken.sign(payload, JWT_SECRET, { expiresIn });
+const signJWT = ({ payload, expiresIn }) => jsonwebtoken.sign(payload, JWT_SECRET, { expiresIn });
 
-const verifyJwt = (jwtToken) => {
+const verifyJWT = (jwtToken) => {
     try { return jsonwebtoken.verify(jwtToken, JWT_SECRET); }
     catch (error) {
         if (error.name === "TokenExpiredError") {
@@ -20,4 +20,4 @@ const verifyJwt = (jwtToken) => {
     }
 }
 
-module.exports = { signJwt, verifyJwt };
+module.exports = { signJWT, verifyJWT };

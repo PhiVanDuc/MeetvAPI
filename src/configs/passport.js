@@ -6,7 +6,7 @@ passport.use(
         {
             clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: "http://localhost:3001/api/auth/google/callback"
+            callbackURL: "http://localhost:3001/api/oauth/google/callback"
         },
         (accessToken, refreshToken, profile, cb) => {
             return cb(null, profile);
@@ -14,7 +14,7 @@ passport.use(
     )
 );
 
-const passportGoogleMiddleware = passport.authenticate(
+const google = passport.authenticate(
     "google",
     {
         scope: ["profile", "email"],
@@ -24,5 +24,5 @@ const passportGoogleMiddleware = passport.authenticate(
 
 module.exports = {
     passport,
-    passportGoogleMiddleware
+    google
 };

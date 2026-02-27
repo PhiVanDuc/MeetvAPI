@@ -83,26 +83,5 @@ module.exports = {
         .refine((data) => data.password === data.passwordConfirmation, {
             error: "Không khớp",
             path: ["passwordConfirmation"],
-        }),
-
-    googleCallbackResponse: z.object({
-        exchangeToken: z
-            .string()
-            .trim()
-            .regex(/^[0-9a-fA-F]{64}$/, "Sai định dạng.")
-    }),
-
-    oauthSignInRequest: z.object({
-        exchangeToken: z
-            .string()
-            .trim()
-            .regex(/^[0-9a-fA-F]{64}$/, "Sai định dạng.")
-    }),
-
-    oauthSignInResponse: z.object({
-        accessToken: z
-            .jwt({ error: "Sai định dạng." }),
-        refreshToken: z
-            .jwt({ error: "Sai định dạng." })
-    })
+        })
 }
