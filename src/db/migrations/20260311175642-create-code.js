@@ -4,7 +4,7 @@
 
 module.exports = {
     async up(queryInterface, Sequelize) {
-        await queryInterface.createTable('verifications', {
+        await queryInterface.createTable('codes', {
             id: {
                 type: Sequelize.UUID,
                 allowNull: false,
@@ -13,18 +13,21 @@ module.exports = {
                 defaultValue: Sequelize.UUIDV4
             },
             identifier: {
-                type: Sequelize.STRING,
+                type: Sequelize.TEXT,
                 allowNull: false
             },
-            value: {
-                type: Sequelize.STRING,
+            code: {
+                type: Sequelize.TEXT,
                 allowNull: false
+            },
+            payload: {
+                type: Sequelize.TEXT
             },
             expires_at: {
                 type: Sequelize.DATE,
                 allowNull: false
             },
-            action: {
+            type: {
                 type: Sequelize.STRING,
                 allowNull: false
             },
@@ -38,7 +41,8 @@ module.exports = {
             }
         });
     },
+
     async down(queryInterface, Sequelize) {
-        await queryInterface.dropTable('verifications');
+        await queryInterface.dropTable('codes');
     }
 };

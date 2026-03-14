@@ -1,8 +1,10 @@
+const cors = require("cors");
+
 const whitelist = [
     process.env.FE
 ];
 
-const corsOptions = {
+module.exports = cors({
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
 
@@ -11,6 +13,4 @@ const corsOptions = {
     },
     methods: "GET,POST,PUT,PATCH,DELETE",
     optionsSuccessStatus: 200,
-};
-
-module.exports = corsOptions;
+});

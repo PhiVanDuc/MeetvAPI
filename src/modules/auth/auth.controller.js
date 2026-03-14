@@ -8,10 +8,7 @@ module.exports = {
             const data = authDTO.sendOTPRequest.parse(body);
 
             await authService.sendOTP(data);
-
-            return res.status(200).json({
-                message: "Gửi mã OTP thành công."
-            });
+            return res.status(200).json({ message: "Gửi mã OTP thành công." });
         }
         catch(error) { next(error); }
     },
@@ -22,10 +19,7 @@ module.exports = {
             const data = authDTO.signUpRequest.parse(body);
 
             await authService.signUp(data);
-
-            return res.status(201).json({
-                message: "Đăng ký tài khoản thành công."
-            });
+            return res.status(201).json({ message: "Đăng ký tài khoản thành công." });
         }
         catch(error) { next(error); }
     },
@@ -45,15 +39,27 @@ module.exports = {
         catch(error) { next(error); }
     },
 
-    resetPassword: async (req, res, next) => {
+    forgotPassword: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDTO.resetPasswordRequest.parse(body);
+            const data = authDTO.forgotPasswordRequest.parse(body);
 
-            await authService.resetPassword(data);
+            await authService.forgotPassword(data);
+            return res.status(200).json({ message: "Khôi phục mật khẩu thành công." });
+        }
+        catch(error) { next(error); }
+    },
+
+    refreshTokens: async (req, res, next) => {
+        try {
+            const body = req.body;
+            const data = authDTO.refreshTokensRequest.parse(body);
+
+            const responseData = await authService.refreshTokens(data);
 
             return res.status(200).json({
-                message: "Đặt lại mật khẩu thành công."
+                message: "Làm mới phiên đăng nhập thành công!",
+                data: responseData
             });
         }
         catch(error) { next(error); }

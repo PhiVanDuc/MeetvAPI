@@ -1,15 +1,15 @@
 const z = require("zod");
 
-const VERIFICATION_ACTIONS = require("../../consts/verification-actions");
+const CODE_TYPES = require("../../consts/code-types");
 
 module.exports = {
     sendOTPRequest: z.object({
         email: z
-            .email({ error: "Sai định dạng." }),
-        action: z
+            .email({ error: "Email sai định dạng." }),
+        type: z
             .enum(
-                Object.values(VERIFICATION_ACTIONS),
-                { error: "Sai định dạng." }
+                Object.values(CODE_TYPES),
+                { error: "Loại mã OTP sai định dạng." }
             )
     }),
 
@@ -17,71 +17,61 @@ module.exports = {
         name: z
             .string()
             .trim()
-            .min(1, { error: "Không thể để trống." })
-            .max(100, { error: "Không thể vượt quá 100 ký tự." }),
+            .min(1, { error: "Tên người dùng không thể để trống." })
+            .max(100, { error: "Tên người dùng không thể vượt quá 100 ký tự." }),
         email: z
-            .email({ error: "Sai định dạng." }),
+            .email({ error: "Email sai định dạng." }),
         otp: z
             .string()
             .trim()
-            .regex(
-                /^\d{6}$/,
-                { error: "Sai định dạng." }
-            ),
+            .regex(/^\d{6}$/, { error: "Mã OTP sai định dạng." }),
         password: z
             .string()
             .trim()
-            .min(8, { error: "Quá ngắn." })
-            .max(100, { error: "Quá dài." }),
-        passwordConfirmation: z
-            .string()
-            .trim()
-            .min(1, { error: "Không thể để trống." })
-    })
-        .refine((data) => data.password === data.passwordConfirmation, {
-            error: "Không khớp",
-            path: ["passwordConfirmation"],
-        }),
+            .min(8, { error: "Mật khẩu không thể ít hơn 8 ký tự." })
+            .max(100, { error: "Mật khẩu không thể vượt quá 100 ký tự." })
+    }),
 
     signInRequest: z.object({
         email: z
-            .email({ error: "Sai định dạng." }),
+            .email({ error: "Email sai định dạng." }),
         password: z
             .string()
             .trim()
-            .min(1, { error: "Không thể để trống." })
-            .max(100, { error: "Quá dài." }),
+            .min(1, { error: "Mật khẩu không thể để trống." })
+            .max(100, { error: "Mật khẩu không thể vượt quá 100 ký tự." }),
     }),
 
     signInResponse: z.object({
         accessToken: z
-            .jwt({ error: "Sai định dạng." }),
+            .jwt({ error: "Access token sai định dạng." }),
         refreshToken: z
-            .jwt({ error: "Sai định dạng." })
+            .jwt({ error: "Refresh token sai định dạng." })
     }),
 
-    resetPasswordRequest: z.object({
+    forgotPasswordRequest: z.object({
         email: z
-            .email({ error: "Sai định dạng." }),
+            .email({ error: "Email sai định dạng." }),
         otp: z
             .string()
             .trim()
-            .regex(
-                /^\d{6}$/,
-                { error: "Sai định dạng." }
-            ),
+            .regex(/^\d{6}$/, { error: "Mã OTP sai định dạng." }),
         password: z
             .string()
             .trim()
-            .min(8, { error: "Quá ngắn." })
-            .max(100, { error: "Quá dài." }),
-        passwordConfirmation: z
-            .string()
-            .trim()
-            .min(1, { error: "Không thể để trống." })
+            .min(8, { error: "Mật khẩu không thể ít hơn 8 ký tự." })
+            .max(100, { error: "Mật khẩu không thể vượt quá 100 ký tự." })
+    }),
+
+    refreshTokensRequest: z.object({
+        refreshToken: z
+            .jwt({ error: "Refresh token sai định dạng." })
+    }),
+
+    refreshTokensResponse: z.object({
+        accessToken: z
+            .jwt({ error: "Access token sai định dạng." }),
+        refreshToken: z
+            .jwt({ error: "Refresh token sai định dạng." })
     })
-        .refine((data) => data.password === data.passwordConfirmation, {
-            error: "Không khớp",
-            path: ["passwordConfirmation"],
-        })
 }

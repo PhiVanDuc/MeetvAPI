@@ -1,13 +1,27 @@
+const { ZodError } = require("zod");
+
 module.exports = (error, req, res, next) => {
-    const status = error.status || 500;
-    const message = error.message || "Lỗi server nội bộ!";
+    let errors;
     const data = error.data;
+    let status = error.status || 500;
+    let message = error.message || "Lỗi server nội bộ!";
+
+    if (error instanceof ZodError) {
+        status = 400;
+        message = "Lỗi định dạng dữ liệu!";
+
+        errors = error.issues.map(error => ({
+            code: error.code,
+            field: error.path[0],
+            message: error.message
+        }))
+    }
 
     console.error(error);
 
-    res.status(status).json({
-        success: false,
+    return res.status(status).json({
         message,
-        ...(data ? { data } : {})
+        ...(data ? { data } : {}),
+        ...(errors ? { errors }: {})
     });
 };

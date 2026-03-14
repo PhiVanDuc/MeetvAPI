@@ -3,11 +3,11 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class Verification extends Model {
+    class Code extends Model {
         static associate(models) {}
     }
-
-    Verification.init(
+    
+    Code.init(
         {
             id: {
                 type: DataTypes.UUID,
@@ -17,29 +17,33 @@ module.exports = (sequelize, DataTypes) => {
                 defaultValue: DataTypes.UUIDV4
             },
             identifier: {
-                type: DataTypes.STRING,
+                type: DataTypes.TEXT,
                 allowNull: false
             },
-            value: {
-                type: DataTypes.STRING,
+            code: {
+                type: DataTypes.TEXT,
                 allowNull: false
+            },
+            payload: {
+                type: DataTypes.TEXT
             },
             expiresAt: {
                 type: DataTypes.DATE,
                 allowNull: false
             },
-            action: {
+            type: {
                 type: DataTypes.STRING,
                 allowNull: false
             }
         },
         {
             sequelize,
-            modelName: "Verification",
-            tableName: "verifications",
+            modelName: "Code",
+            tableName: "codes",
             timestamps: true,
             underscored: true
         }
     );
-    return Verification;
+
+    return Code;
 };

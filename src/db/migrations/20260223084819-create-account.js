@@ -22,12 +22,12 @@ module.exports = {
                 onDelete: "CASCADE",
                 onUpdate: "CASCADE"
             },
-            provider: {
-                type: Sequelize.STRING,
-                allowNull: false
-            },
             provider_id: {
                 type: Sequelize.TEXT,
+                allowNull: false
+            },
+            provider: {
+                type: Sequelize.STRING,
                 allowNull: false
             },
             password: {

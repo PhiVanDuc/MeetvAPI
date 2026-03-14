@@ -1,81 +1,82 @@
-const { sequelize } = require("../../db/models/index");
-const userRepository = require("../users/user.repository");
-const accountRepository = require("../accounts/account.repository");
-const verificationRepository = require("../verifications/verification.repository");
+const { Op } = require("sequelize");
+const { User, Account, Code, sequelize } = require("../../db/models/index");
 
-const bcrypt = require("bcrypt");
 const authDTO = require("./auth.dto");
-const { signJWT } = require("../../libs/jwt");
-const hashOTP = require("../../utils/hash-otp");
-const generateOTP = require("../../utils/generate-otp");
+const hashCode = require("../../utils/hash-code");
 const sendEmail = require("../../libs/email/send-email");
+const { signJWT, verifyJWT } = require("../../libs/jwt");
+const generateCode = require("../../utils/generate-code");
+const hashPassword = require("../../utils/hash-password");
 const generateExpiry = require("../../utils/generate-expiry");
 const throwHTTPError = require("../../utils/throw-http-error");
+const comparePassword = require("../../utils/compare-password");
 
-const SALT = 10;
 const PROVIDERS = require("../../consts/providers");
+const CODE_TYPES = require("../../consts/code-types");
 const EMAIL_TEMPLATES = require("../../consts/email-templates");
-const VERIFICATION_ACTIONS = require("../../consts/verification-actions");
 
 module.exports = {
-    sendOTP: async (data) => {
-        const otp = generateOTP();
+    sendOTP: async (data) => {  
         const transaction = await sequelize.transaction();
 
         try {
-            await verificationRepository.destroy({
-                where: { identifier: data.email },
+            await Code.destroy({
+                where: {
+                    type: data.type,
+                    identifier: data.email
+                },
                 transaction
             });
 
-            await verificationRepository.add({
-                data: {
-                    value: hashOTP(otp),
-                    action: data.action,
+            const otp = generateCode("otp");
+
+            await Code.create(
+                {
+                    type: data.type,
+                    code: hashCode(otp),
                     identifier: data.email,
-                    expiresAt: generateExpiry({ time: 5 })
+                    expiresAt: generateExpiry({ minutes: 2 })
                 },
-                options: { transaction }
-            });
+                { transaction }
+            );
 
             await transaction.commit();
 
             await sendEmail({
                 data: { otp },
-                emailTo: data.email,
-                emailTemplate: EMAIL_TEMPLATES.OTP
+                to: data.email,
+                template: EMAIL_TEMPLATES.OTP
             });
         }
-        catch(error) {
-            await transaction.rollback();
+        catch (error) {
+            if (!transaction.finished) await transaction.rollback();
             throw error;
         }
     },
 
-    signUp: async (data) => {   
-        let userId;     
+    signUp: async (data) => {
         const transaction = await sequelize.transaction();
 
         try {
-            const otp = await verificationRepository.find({
+            const otp = await Code.findOne({
                 where: {
                     identifier: data.email,
-                    value: hashOTP(data.otp),
-                    action: VERIFICATION_ACTIONS.SIGN_UP
+                    type: CODE_TYPES.SIGN_UP,
+                    code: hashCode(data.otp),
+                    expiresAt: { [Op.gt]: new Date() }
                 },
                 transaction
             });
 
-            if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không hợp lệ." });
-            if (new Date() > otp.expiresAt) throwHTTPError({ status: 400, message: "Mã OTP đã hết hạn." });
+            if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không tồn tại hoặc đã hết hạn." });
 
-            const user = await userRepository.find({
+            let user = await User.findOne({
                 where: { email: data.email },
                 transaction
             });
 
             if (user) {
-                const account = await accountRepository.find({
+                const account = await Account.findOne({
                     where: {
                         userId: user.id,
                         provider: PROVIDERS.CREDENTIALS
@@ -83,69 +84,101 @@ module.exports = {
                     transaction
                 });
 
-                userId = user.id;
-                if (account) throwHTTPError({ status: 409, message: "Một tài khoản đã được đăng ký với email hiện tại." });
+                if (account) throwHTTPError({ status: 409, message: "Đã tồn tại tài khoản thuộc email hiện tại." });
             }
-
-            if (!user) {
-                const newUser = await userRepository.add({
-                    data: {
+            else {
+                user = await User.create(
+                    {
                         name: data.name,
-                        email: data.email
+                        email: data.email,
                     },
-                    options: { transaction }
-                });
-
-                userId = newUser.id;
+                    { transaction }
+                );
             }
 
-            await accountRepository.add({
-                data: {
-                    userId,
-                    providerId: userId,
+            await Account.create(
+                {
+                    userId: user.id,
+                    providerId: user.email,
                     provider: PROVIDERS.CREDENTIALS,
-                    password: await bcrypt.hash(data.password, SALT)
+                    password: await hashPassword({ password: data.password })
                 },
-                options: { transaction }
-            });
+                { transaction }
+            )
 
-            await verificationRepository.destroy({
-                where: { identifier: data.email },
+            await Code.destroy({
+                where: {
+                    identifier: data.email,
+                    type: CODE_TYPES.SIGN_UP
+                },
                 transaction
             });
 
             await transaction.commit();
         }
-        catch(error) {
-            await transaction.rollback();
+        catch (error) {
+            if (!transaction.finished) await transaction.rollback();
             throw error;
         }
     },
 
-    resetPassword: async (data) => {
+    signIn: async (data) => {
+        const user = await User.findOne({
+            where: { email: data.email }
+        });
+
+        if (!user) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không chính xác." });
+
+        const account = await Account.findOne({
+            where: {
+                userId: user.id,
+                provider: PROVIDERS.CREDENTIALS
+            }
+        });
+
+        if (!account) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không chính xác." });
+
+        const isValidPassword = await comparePassword({
+            password: data.password,
+            hashedPassword: account.password
+        });
+
+        if (!isValidPassword) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không chính xác." });
+
+        const accessToken = signJWT({
+            payload: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                accountId: account.id,
+                provider: account.provider
+            },
+            expiresIn: "2s"
+        });
+
+        const refreshToken = signJWT({
+            payload: {
+                id: user.id,
+                accountId: account.id
+            },
+            expiresIn: "14d"
+        });
+
+        return authDTO.signInResponse.parse({ accessToken, refreshToken });
+    },
+
+    forgotPassword: async (data) => {
         const transaction = await sequelize.transaction();
 
         try {
-            const otp = await verificationRepository.find({
-                where: {
-                    identifier: data.email,
-                    value: hashOTP(data.otp),
-                    action: VERIFICATION_ACTIONS.RESET_PASSWORD
-                },
-                transaction
-            });
-
-            if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không hợp lệ." });
-            if (new Date() > otp.expiresAt) throwHTTPError({ status: 400, message: "Mã OTP đã hết hạn." });
-
-            const user = await userRepository.find({
+            const user = await User.findOne({
                 where: { email: data.email },
                 transaction
             });
 
-            if (!user) throwHTTPError({ status: 409, message: "Không có tài khoản nào được đăng ký với email hiện tại." });
+            if (!user) throwHTTPError({ status: 400, message: "Không có tài khoản nào thuộc email hiện tại." });
 
-            const account = await accountRepository.find({
+            const account = await Account.findOne({
                 where: {
                     userId: user.id,
                     provider: PROVIDERS.CREDENTIALS
@@ -153,79 +186,71 @@ module.exports = {
                 transaction
             });
 
-            const hashedPassword = await bcrypt.hash(data.password, SALT);
+            if (!account) throwHTTPError({ status: 400, message: "Không có tài khoản nào thuộc email hiện tại." });
 
-            if (!account) {
-                await accountRepository.add({
-                    data: {
-                        userId: user.id,
-                        providerId: user.id,
-                        password: hashedPassword,
-                        provider: PROVIDERS.CREDENTIALS
-                    },
-                    options: { transaction }
-                });
-            }
-            else {
-                await accountRepository.update({
-                    data: { password: hashedPassword },
-                    options: {
-                        where: { id: account.id },
-                        transaction
-                    }
-                });
-            }
+            const otp = await Code.findOne({
+                where: {
+                    identifier: data.email,
+                    code: hashCode(data.otp),
+                    type: CODE_TYPES.FORGOT_PASSWORD,
+                    expiresAt: { [Op.gt]: new Date() }
+                },
+                transaction
+            });
 
-            await verificationRepository.destroy({
-                where: { identifier: data.email },
+            if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không tồn tại hoặc đã hết hạn." });
+
+            await account.update(
+                { password: await hashPassword({ password: data.password }) },
+                { transaction }
+            );
+
+            await Code.destroy({
+                where: {
+                    identifier: data.email,
+                    type: CODE_TYPES.FORGOT_PASSWORD
+                },
                 transaction
             });
 
             await transaction.commit();
         }
-        catch (error) {
-            await transaction.rollback();
+        catch(error) {
+            if (!transaction.finished) await transaction.rollback();
             throw error;
         }
     },
 
-    signIn: async (data) => {
-        const user = await userRepository.find({
-            where: { email: data.email }
-        });
+    refreshSession: async (data) => {
+        const payload = verifyJWT(data.refreshToken);
 
-        if (!user) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
+        if (payload?.isExpire) throwHTTPError({ status: 401, message: "Phiên đăng nhập đã hết hạn." });
+        if (payload?.isInvalid) throwHTTPError({ status: 401, message: "Phiên đăng nhập không hợp lệ." });
 
-        const account = await accountRepository.find({
-            where: {
-                userId: user.id,
-                provider: PROVIDERS.CREDENTIALS
-            }
-        });
-
-        if (!account) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
-        if (!await bcrypt.compare(data.password, account.password)) throwHTTPError({ status: 401, message: "Email hoặc mật khẩu không tồn tại." });
+        const user = await User.findByPk(payload.id);
+        const account = await Account.findByPk(payload.accountId);
+        
+        if (!user || !account) throwHTTPError({ status: 401, message: "Tài khoản không tồn tại." });
 
         const accessToken = signJWT({
-            expiresIn: "10m",
             payload: {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                image: user.image,
                 accountId: account.id,
                 provider: account.provider
-            }
+            },
+            expiresIn: "2s"
         });
 
         const refreshToken = signJWT({
-            expiresIn: "30d",
             payload: {
                 id: user.id,
                 accountId: account.id
-            }
+            },
+            expiresIn: "14d"
         });
 
-        return authDTO.signInResponse.parse({ accessToken, refreshToken });
-    },
+        return authDTO.refreshTokensResponse.parse({ accessToken, refreshToken });
+    }
 }

@@ -25,12 +25,12 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.UUID,
                 allowNull: false
             },
-            provider: {
-                type: DataTypes.STRING,
-                allowNull: false
-            },
             providerId: {
                 type: DataTypes.TEXT,
+                allowNull: false
+            },
+            provider: {
+                type: DataTypes.STRING,
                 allowNull: false
             },
             password: {

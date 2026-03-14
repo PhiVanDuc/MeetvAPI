@@ -4,10 +4,9 @@ const http = require("http");
 
 const express = require("express");
 const morgan = require('morgan');
-const corsMiddleware = require('cors');
 
-const corsConfig = require('./src/configs/cors');
-const { passport } = require("./src/configs/passport");
+const cors = require("./src/libs/cors");
+const { passport } = require("./src/libs/passport");
 
 const errorMiddleware = require("./src/middlewares/error.middleware");
 const notFoundMiddleware = require("./src/middlewares/not-found.middleware");
@@ -18,8 +17,8 @@ const indexRoute = require("./src/routes/index.route");
 const app = express();
 const server = http.createServer(app);
 
-// Cors
-app.use(corsMiddleware(corsConfig));
+// Cross-Origin Resource Sharing
+app.use(cors);
 
 // Parse Data Middleware
 app.use(express.json());

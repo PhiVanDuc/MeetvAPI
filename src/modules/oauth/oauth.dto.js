@@ -2,23 +2,23 @@ const z = require("zod");
 
 module.exports = {
     googleCallbackResponse: z.object({
-        exchangeToken: z
+        code: z
             .string()
             .trim()
-            .regex(/^[A-Za-z0-9_-]{43}$/, "Sai định dạng.")
+            .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi không hợp lệ." })
     }),
 
     oauthSignInRequest: z.object({
-        exchangeToken: z
+        code: z
             .string()
             .trim()
-            .regex(/^[A-Za-z0-9_-]{43}$/, "Sai định dạng.")
+            .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi không hợp lệ." })
     }),
 
     oauthSignInResponse: z.object({
         accessToken: z
-            .jwt({ error: "Sai định dạng." }),
+            .jwt({ error: "Access token sai định dạng." }),
         refreshToken: z
-            .jwt({ error: "Sai định dạng." })
+            .jwt({ error: "Refresh token sai định dạng." })
     })
 }

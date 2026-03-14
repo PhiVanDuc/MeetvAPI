@@ -1,11 +1,19 @@
+const { ZodError } = require("zod");
+
 const oauthDTO = require("./oauth.dto");
 const oauthService = require("./oauth.service");
-const { passport } = require("../../configs/passport");
+const { passport } = require("../../libs/passport");
 
 const FE = process.env.FE;
 
 module.exports = {
     googleCallback: (req, res, next) => {
+        const REDIRECT_URL = "/oauth/google";
+
+        const redirectError = (message) => (
+            res.redirect(`${FE}${REDIRECT_URL}?errorMessage=${encodeURIComponent(message || "Đăng nhập bằng nền tảng Google thất bại.")}`)
+        )
+
         passport.authenticate(
             "google",
             async (error, user, info, status) => {
@@ -13,15 +21,19 @@ module.exports = {
                     if (error || !user) {
                         if (error) console.error(error);
                         if (!user) console.error({ info, status });
-                        return res.redirect(`${FE}/sign-in?error=google-auth-failed`);
+                        return redirectError(error.message);
                     }
 
                     const responseData = await oauthService.googleCallback(user);
-                    return res.redirect(`${FE}/oauth/google/callback?exchangeToken=${responseData.exchangeToken}`);
+                    return res.redirect(`${FE}${REDIRECT_URL}?code=${responseData.code}`);
                 }
                 catch(error) {
                     console.error(error);
-                    return res.redirect(`${FE}/sign-in?error=google-auth-failed`);
+
+                    let errorMessage = error.message;
+                    if (error instanceof ZodError) errorMessage = error.issues[0].message;
+
+                    return redirectError(errorMessage);
                 }
             }
         )(req, res, next);

@@ -1,22 +1,25 @@
-const otpTemplate = require("./templates/otp");
-const transporter = require("../../configs/transporter");
+const transporter = require("./transporter");
+const templateOTP = require("./templates/otp");
 const EMAIL_TEMPLATE = require("../../consts/email-templates");
 
-module.exports = async ({ emailTemplate, emailTo, data }) => {
+module.exports = async ({ template, to, data }) => {
     try {
-        let content = { subject: "", html: "" };
+        let content = {
+            html: "",
+            subject: ""
+        }
 
-        switch (emailTemplate) {
+        switch (template) {
             case EMAIL_TEMPLATE.OTP:
-                content = otpTemplate(data);
+                content = templateOTP(data);
                 break;
         }
 
         await transporter.sendMail({
-            from: process.env.EMAIL_FROM,
-            to: emailTo,
-            subject: content.subject,
+            to,
             html: content.html,
+            subject: content.subject,
+            from: process.env.EMAIL_FROM
         });
     }
     catch (error) { throw error; }
