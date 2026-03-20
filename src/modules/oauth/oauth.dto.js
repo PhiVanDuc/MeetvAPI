@@ -3,14 +3,14 @@ const z = require("zod");
 module.exports = {
     googleCallbackResponse: z.object({
         code: z
-            .string()
+            .string({ error: "Mã trao đổi cần phải là chuỗi." })
             .trim()
             .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi không hợp lệ." })
     }),
 
     oauthSignInRequest: z.object({
         code: z
-            .string()
+            .string({ error: "Mã trao đổi cần phải là chuỗi." })
             .trim()
             .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi không hợp lệ." })
     }),

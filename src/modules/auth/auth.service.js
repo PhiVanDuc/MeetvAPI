@@ -251,6 +251,6 @@ module.exports = {
             expiresIn: "14d"
         });
 
-        return authDTO.refreshTokensResponse.parse({ accessToken, refreshToken });
+        return authDTO.refreshSessionResponse.parse({ accessToken, refreshToken });
     }
 }

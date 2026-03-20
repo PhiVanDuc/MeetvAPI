@@ -7,6 +7,6 @@ router.post("/otp", authController.sendOTP);
 router.post("/users", authController.signUp);
 router.post("/session", authController.signIn);
 router.patch("/password/recovery", authController.forgotPassword);
-router.post("/session/refresh", authController.refreshTokens);
+router.post("/session/refresh", authController.refreshSession);
 
 module.exports = router;

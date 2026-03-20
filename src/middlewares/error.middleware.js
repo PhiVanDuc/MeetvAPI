@@ -1,8 +1,8 @@
 const { ZodError } = require("zod");
 
 module.exports = (error, req, res, next) => {
-    let errors;
     const data = error.data;
+    let errors = error.errors;
     let status = error.status || 500;
     let message = error.message || "Lỗi server nội bộ!";
 

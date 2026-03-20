@@ -50,12 +50,12 @@ module.exports = {
         catch(error) { next(error); }
     },
 
-    refreshTokens: async (req, res, next) => {
+    refreshSession: async (req, res, next) => {
         try {
             const body = req.body;
-            const data = authDTO.refreshTokensRequest.parse(body);
+            const data = authDTO.refreshSessionRequest.parse(body);
 
-            const responseData = await authService.refreshTokens(data);
+            const responseData = await authService.refreshSession(data);
 
             return res.status(200).json({
                 message: "Làm mới phiên đăng nhập thành công!",
