@@ -53,6 +53,22 @@ module.exports = {
             )
     }),
 
+    getAgentRequest: z.object({
+        id: z
+            .uuidv4({ error: "Id agent không hợp lệ." })
+    }),
+
+    getAgentResponse: z.object({
+        id: z
+            .uuid({ error: "Id agent không hợp lệ." }),
+        name: z
+            .string({ error: "Tên agent cần phải là chuỗi." }),
+        slug: z
+            .string({ error: "Slug agent cần phải là chuỗi." }),
+        instructions: z
+            .string({ error: "Chỉ dẫn agent cần phải là chuỗi." })
+    }),
+
     addAgentRequest: z.object({
         userId: z
             .uuidv4({ error: "Id người dùng không hợp lệ." }),
@@ -66,5 +82,27 @@ module.exports = {
             .trim()
             .min(1, { error: "Chỉ dẫn agent không thể để trống." })
             .max(2000, { error: "Chỉ dẫn agent không thể vượt quá 2000 ký tự." })
+    }),
+
+    updateAgentRequest: z.object({
+        id: z
+            .uuidv4({ error: "Id agent không hợp lệ." }),
+        userId: z
+            .uuidv4({ error: "Id người dùng không hợp lệ." }),
+        name: z
+            .string({ error: "Tên agent cần phải là chuỗi." })
+            .trim()
+            .min(1, { error: "Tên agent không thể để trống." })
+            .max(100, { error: "Tên agent không thể vượt quá 100 ký tự." }),
+        instructions: z
+            .string({ error: "Chỉ dẫn agent cần phải là chuỗi." })
+            .trim()
+            .min(1, { error: "Chỉ dẫn agent không thể để trống." })
+            .max(2000, { error: "Chỉ dẫn agent không thể vượt quá 2000 ký tự." })
+    }),
+
+    deleteAgentRequest: z.object({
+        id: z
+            .uuidv4({ error: "Id agent không hợp lệ." })
     })
 }
