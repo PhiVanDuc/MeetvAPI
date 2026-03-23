@@ -26,10 +26,6 @@ module.exports = {
                 type: Sequelize.STRING,
                 allowNull: false
             },
-            slug: {
-                type: Sequelize.STRING,
-                allowNull: false
-            },
             instructions: {
                 type: Sequelize.TEXT,
                 allowNull: false

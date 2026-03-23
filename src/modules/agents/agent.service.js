@@ -3,18 +3,29 @@ const { Agent } = require("../../db/models/index");
 
 const agentDTO = require("../agents/agent.dto");
 const baseRepository = require("../base/base.repository");
-const generateSlug = require("../../utils/generate-slug");
+const formatFilter = require("../../utils/format-filter");
 const throwHTTPError = require("../../utils/throw-http-error");
 
 module.exports = {
     getAgents: async (data) => {
+        const filter = formatFilter({ name: data?.name });
+        const where = {};
+
+        if (filter?.name) where.name = { [Op.iLike]: `%${filter?.name}%` };
+
         const { rows, ...rest } = await baseRepository.paginate({
             model: Agent,
             page: data.page,
-            limit: data.limit
+            limit: data.limit,
+            options: { where }
         });
 
-        return agentDTO.getAgentsResponse.parse({ ...rest, agents: rows });
+        const countAgent = await Agent.count({
+            where: { userId: data.userId },
+            limit: 1
+        });
+
+        return agentDTO.getAgentsResponse.parse({ ...rest, createdAgent: countAgent > 0, agents: rows });
     },
 
     getAgent: async (data) => {
@@ -23,11 +34,9 @@ module.exports = {
     },
 
     addAgent: async (data) => {
-        const slug = generateSlug(data.name);
-        
         const agent = await Agent.findOne({
             where: {
-                slug,
+                name: data.name,
                 userId: data.userId
             }
         });
@@ -35,7 +44,6 @@ module.exports = {
         if (agent) throwHTTPError({ status: 409, message: "Tên agent đã tồn tại." });
 
         await Agent.create({
-            slug,
             name: data.name,
             userId: data.userId,
             instructions: data.instructions
@@ -46,11 +54,9 @@ module.exports = {
         const agent = await Agent.findByPk(data.id);
         if (!agent) throwHTTPError({ status: 404, message: "Agent không tồn tại." });
 
-        const slug = generateSlug(data.name);
-
         const duplicateAgent = await Agent.findOne({
             where: {
-                slug,
+                name: data.name,
                 userId: data.userId,
                 id: { [Op.ne]: data.id }
             }
@@ -59,7 +65,6 @@ module.exports = {
         if (duplicateAgent) throwHTTPError({ status: 409, message: "Tên agent đã tồn tại." });
 
         await agent.update({
-            slug,
             name: data.name,
             instructions: data.instructions
         });

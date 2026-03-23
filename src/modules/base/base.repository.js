@@ -15,6 +15,7 @@ module.exports = {
             pagination: {
                 page,
                 limit,
+                totalItems: count,
                 totalPages: Math.ceil(count / limit)
             }
         }

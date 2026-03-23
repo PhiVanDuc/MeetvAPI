@@ -7,7 +7,7 @@ module.exports = {
             const query = req.query;
             const data = agentDTO.getAgentsRequest.parse(query);
 
-            const responseData = await agentService.getAgents(data);
+            const responseData = await agentService.getAgents({ ...data, userId: req.user.id });
 
             return res.status(200).json({
                 message: "Lấy danh sách các agent thành công.",
@@ -25,7 +25,7 @@ module.exports = {
             const responseData = await agentService.getAgent(data);
 
             return res.status(200).json({
-                message: "Lấy ra agent thành công.",
+                message: "Lấy agent thành công.",
                 data: responseData
             })
         }
@@ -35,10 +35,9 @@ module.exports = {
     addAgent: async (req, res, next) => {
         try {
             const body = req.body;
-            const { id: userId } = req.user;
-            const data = agentDTO.addAgentRequest.parse({ userId, ...body });
+            const data = agentDTO.addAgentRequest.parse(body);
 
-            await agentService.addAgent(data);
+            await agentService.addAgent({ ...data, userId: req.user.id });
             return res.status(201).json({ message: "Thêm agent thành công." });
         }
         catch(error) { next(error); }
@@ -48,10 +47,9 @@ module.exports = {
         try {
             const body = req.body;
             const params = req.params;
-            const { id: userId } = req.user;
-            const data = agentDTO.updateAgentRequest.parse({ userId, ...body, ...params });
+            const data = agentDTO.updateAgentRequest.parse({ ...body, ...params });
 
-            await agentService.updateAgent(data);
+            await agentService.updateAgent({ ...data, userId: req.user.id });
             return res.status(200).json({ message: "Cập nhật agent thành công." });
         }
         catch(error) { next(error); }

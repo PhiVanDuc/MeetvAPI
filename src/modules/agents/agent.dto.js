@@ -14,7 +14,10 @@ module.exports = {
             .int()
             .min(20)
             .max(100)
-            .catch(20)
+            .catch(20),
+        name: z
+            .string({ error: "Tên agent cần phải là chuỗi." })
+            .optional()
     }),
 
     getAgentsResponse: z.object({
@@ -38,6 +41,8 @@ module.exports = {
                 .catch(1)
                 .transform(value => value.toString())
         }),
+        createdAgent: z
+            .boolean({ error: "Người dùng đã tạo agent hay chưa cần phải là boolean." }),
         agents: z
             .array(
                 z.object({
@@ -45,8 +50,6 @@ module.exports = {
                         .uuid({ error: "Id agent không hợp lệ." }),
                     name: z
                         .string({ error: "Tên agent cần phải là chuỗi." }),
-                    slug: z
-                        .string({ error: "Slug agent cần phải là chuỗi." }),
                     instructions: z
                         .string({ error: "Chỉ dẫn agent cần phải là chuỗi." })
                 })
@@ -63,15 +66,11 @@ module.exports = {
             .uuid({ error: "Id agent không hợp lệ." }),
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." }),
-        slug: z
-            .string({ error: "Slug agent cần phải là chuỗi." }),
         instructions: z
             .string({ error: "Chỉ dẫn agent cần phải là chuỗi." })
     }),
 
     addAgentRequest: z.object({
-        userId: z
-            .uuidv4({ error: "Id người dùng không hợp lệ." }),
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." })
             .trim()
@@ -87,8 +86,6 @@ module.exports = {
     updateAgentRequest: z.object({
         id: z
             .uuidv4({ error: "Id agent không hợp lệ." }),
-        userId: z
-            .uuidv4({ error: "Id người dùng không hợp lệ." }),
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." })
             .trim()
