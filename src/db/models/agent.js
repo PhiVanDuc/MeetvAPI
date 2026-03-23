@@ -9,6 +9,11 @@ module.exports = (sequelize, DataTypes) => {
                 foreignKey: "userId",
                 as: "user"
             });
+
+            Agent.hasMany(models.Meeting, {
+                foreignKey: "agentId",
+                as: "meetings"
+            });
         }
     }
 
@@ -26,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false
             },
             name: {
-                type: DataTypes.STRING,
+                type: DataTypes.TEXT,
                 allowNull: false
             },
             instructions: {

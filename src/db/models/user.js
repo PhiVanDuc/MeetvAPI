@@ -8,7 +8,17 @@ module.exports = (sequelize, DataTypes) => {
             User.hasMany(models.Account, {
                 foreignKey: "userId",
                 as: "accounts"
-            })
+            });
+
+            User.hasMany(models.Agent, {
+                foreignKey: "userId",
+                as: "agents"
+            });
+
+            User.hasMany(models.Meeting, {
+                foreignKey: "userId",
+                as: "meetings"
+            });
         }
     }
 

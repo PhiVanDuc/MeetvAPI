@@ -74,13 +74,11 @@ module.exports = {
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." })
             .trim()
-            .min(1, { error: "Tên agent không thể để trống." })
-            .max(100, { error: "Tên agent không thể vượt quá 100 ký tự." }),
+            .min(1, { error: "Tên agent không thể để trống." }),
         instructions: z
             .string({ error: "Chỉ dẫn agent cần phải là chuỗi." })
             .trim()
             .min(1, { error: "Chỉ dẫn agent không thể để trống." })
-            .max(2000, { error: "Chỉ dẫn agent không thể vượt quá 2000 ký tự." })
     }),
 
     updateAgentRequest: z.object({
@@ -89,13 +87,11 @@ module.exports = {
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." })
             .trim()
-            .min(1, { error: "Tên agent không thể để trống." })
-            .max(100, { error: "Tên agent không thể vượt quá 100 ký tự." }),
+            .min(1, { error: "Tên agent không thể để trống." }),
         instructions: z
             .string({ error: "Chỉ dẫn agent cần phải là chuỗi." })
             .trim()
             .min(1, { error: "Chỉ dẫn agent không thể để trống." })
-            .max(2000, { error: "Chỉ dẫn agent không thể vượt quá 2000 ký tự." })
     }),
 
     deleteAgentRequest: z.object({
