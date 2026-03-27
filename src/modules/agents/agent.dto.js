@@ -17,6 +17,7 @@ module.exports = {
             .catch(20),
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." })
+            .nullable()
             .optional()
     }),
 

@@ -6,7 +6,7 @@ module.exports = {
             limit,
             offset,
             distinct: true,
-            order: [["createdAt", "DESC"]],
+            order: [["updatedAt", "DESC"]],
             ...options
         });
 
