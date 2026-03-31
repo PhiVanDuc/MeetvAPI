@@ -71,7 +71,7 @@ module.exports = {
             if (!otp) throwHTTPError({ status: 400, message: "Mã OTP không tồn tại hoặc đã hết hạn." });
 
             let user = await User.findOne({
-                where: { email: data.email },
+                where: { email: otp.identifier },
                 transaction
             });
 
@@ -108,7 +108,7 @@ module.exports = {
 
             await Code.destroy({
                 where: {
-                    identifier: data.email,
+                    identifier: user.email,
                     type: CODE_TYPES.SIGN_UP
                 },
                 transaction
@@ -190,7 +190,7 @@ module.exports = {
 
             const otp = await Code.findOne({
                 where: {
-                    identifier: data.email,
+                    identifier: user.email,
                     code: hashCode(data.otp),
                     type: CODE_TYPES.FORGOT_PASSWORD,
                     expiresAt: { [Op.gt]: new Date() }
@@ -207,7 +207,7 @@ module.exports = {
 
             await Code.destroy({
                 where: {
-                    identifier: data.email,
+                    identifier: user.email,
                     type: CODE_TYPES.FORGOT_PASSWORD
                 },
                 transaction

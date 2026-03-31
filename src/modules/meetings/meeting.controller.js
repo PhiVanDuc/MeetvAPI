@@ -64,5 +64,17 @@ module.exports = {
             return res.status(200).json({ message: "Xoá cuộc họp thành công." });
         }
         catch(error) { next(error); }
+    },
+
+    generateUserVideoToken: async (req, res, next) => {
+        try {
+            const responseData = await meetingService.generateUserVideoToken({ userId: req.user.id });
+
+            return res.status(200).json({
+                message: "",
+                data: responseData
+            });
+        }
+        catch(error) { next(error); }
     }
 }

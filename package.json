@@ -11,6 +11,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@stream-io/node-sdk": "^0.7.49",
         "bcrypt": "^6.0.0",
         "bignumber.js": "^10.0.2",
         "cors": "^2.8.5",

@@ -9,4 +9,6 @@ router.post("/", meetingController.addMeeting);
 router.put("/:id", meetingController.updateMeeting);
 router.delete("/:id", meetingController.deleteMeeting);
 
+router.post("/user-video-token", meetingController.generateUserVideoToken);
+
 module.exports = router;
