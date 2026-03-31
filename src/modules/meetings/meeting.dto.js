@@ -59,24 +59,32 @@ module.exports = {
                         id: z
                             .uuidv4({ error: "Id agent không hợp lệ." }),
                         name: z
-                            .string({ error: "Tên agent cần phải là chuỗi." }),
-                        createdAt: z
-                            .date({ error: "Thời gian tạo agent cần phải là đối tượng thời gian." })
+                            .string({ error: "Tên agent cần phải là chuỗi." })
                     }),
                     name: z
                         .string({ error: "Tên cuộc họp cần phải là chuỗi." }),
                     status: z
                         .string({ error: "Trạng thái cuộc họp không hợp lệ." }),
                     startedAt: z
-                        .date({ error: "Thời gian bắt đầu cuộc họp cần phải là đối tượng thời gian." }),
+                        .date({ error: "Thời gian bắt đầu cuộc họp cần phải là đối tượng thời gian." })
+                        .nullable()
+                        .optional(),
                     endedAt: z
-                        .date({ error: "Thời gian kết thúc cuộc họp cần phải là đối tượng thời gian." }),
-                    transcriptURL: z
-                        .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." }),
-                    recordingURL: z
-                        .string({ error: "Đường dẫn video cuộc họp cần phải là chuỗi." }),
+                        .date({ error: "Thời gian kết thúc cuộc họp cần phải là đối tượng thời gian." })
+                        .nullable()
+                        .optional(),
+                    transcriptUrl: z
+                        .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." })
+                        .nullable()
+                        .optional(),
+                    recordingUrl: z
+                        .string({ error: "Đường dẫn video cuộc họp cần phải là chuỗi." })
+                        .nullable()
+                        .optional(),
                     summary: z
                         .string({ error: "Bản tóm tắt cuộc họp cần phải là chuỗi." })
+                        .nullable()
+                        .optional(),
                 })
             )
     }),
@@ -90,25 +98,35 @@ module.exports = {
         id: z
             .uuidv4({ error: "Id cuộc họp không hợp lệ." }),
         agent: z.object({
+            id: z
+                .uuidv4({ error: "Id agent không hợp lệ." }),
             name: z
-                .string({ error: "Tên agent cần phải là chuỗi." }),
-            createdAt: z
-                .date({ error: "Thời gian tạo agent cần phải là đối tượng thời gian." })
+                .string({ error: "Tên agent cần phải là chuỗi." })
         }),
         name: z
             .string({ error: "Tên cuộc họp cần phải là chuỗi." }),
         status: z
             .enum(Object.values(MEETING_STATUSES) ,{ error: "Trạng thái cuộc họp không hợp lệ." }),
         startedAt: z
-            .date({ error: "Thời gian bắt đầu cuộc họp cần phải là đối tượng thời gian." }),
+            .date({ error: "Thời gian bắt đầu cuộc họp cần phải là đối tượng thời gian." })
+            .nullable()
+            .optional(),
         endedAt: z
-            .date({ error: "Thời gian kết thúc cuộc họp cần phải là đối tượng thời gian." }),
-        transcriptURL: z
-            .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." }),
-        recordingURL: z
-            .string({ error: "Đường dẫn video cuộc họp cần phải là chuỗi." }),
+            .date({ error: "Thời gian kết thúc cuộc họp cần phải là đối tượng thời gian." })
+            .nullable()
+            .optional(),
+        transcriptUrl: z
+            .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." })
+            .nullable()
+            .optional(),
+        recordingUrl: z
+            .string({ error: "Đường dẫn video cuộc họp cần phải là chuỗi." })
+            .nullable()
+            .optional(),
         summary: z
             .string({ error: "Bản tóm tắt cuộc họp cần phải là chuỗi." })
+            .nullable()
+            .optional(),
     }),
 
     addMeetingRequest: z.object({

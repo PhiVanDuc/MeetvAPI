@@ -1,6 +1,7 @@
 'use strict';
 
 const { Model } = require('sequelize');
+const MEETING_STATUSES = require("../../consts/meeting-statuses");
 
 module.exports = (sequelize, DataTypes) => {
     class Meeting extends Model {
@@ -40,7 +41,8 @@ module.exports = (sequelize, DataTypes) => {
             },
             status: {
                 type: DataTypes.STRING,
-                allowNull: false
+                allowNull: false,
+                defaultValue: MEETING_STATUSES.UPCOMING
             },
             startedAt: {
                 type: DataTypes.DATE
@@ -48,10 +50,10 @@ module.exports = (sequelize, DataTypes) => {
             endedAt: {
                 type: DataTypes.DATE
             },
-            transcriptURL: {
+            transcriptUrl: {
                 type: DataTypes.TEXT
             },
-            recordingURL: {
+            recordingUrl: {
                 type: DataTypes.TEXT
             },
             summary: {

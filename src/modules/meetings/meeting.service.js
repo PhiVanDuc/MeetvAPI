@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const { Agent, Meeting } = require("../../db/models/index");
 
 const meetingDTO = require("./meeting.dto");
+const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
 
 module.exports = {
@@ -38,7 +39,16 @@ module.exports = {
     },
 
     getMeeting: async (data) => {
-        const meeting = await Meeting.findByPk(data.id);
+        const meeting = await Meeting.findByPk(
+            data.id,
+            {
+                include: {
+                    model: Agent,
+                    as: "agent"
+                }
+            }
+        );
+
         return meetingDTO.getMeetingResponse.parse(meeting);
     },
 

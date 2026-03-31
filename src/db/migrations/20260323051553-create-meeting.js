@@ -2,6 +2,8 @@
 
 /** @type {import('sequelize-cli').Migration} */
 
+const MEETING_STATUSES = require("../../consts/meeting-statuses");
+
 module.exports = {
     async up(queryInterface, Sequelize) {
         await queryInterface.createTable('meetings', {
@@ -38,7 +40,8 @@ module.exports = {
             },
             status: {
                 type: Sequelize.STRING,
-                allowNull: false
+                allowNull: false,
+                defaultValue: MEETING_STATUSES.UPCOMING
             },
             started_at: {
                 type: Sequelize.DATE
