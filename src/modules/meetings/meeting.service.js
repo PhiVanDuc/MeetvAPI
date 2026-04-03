@@ -6,6 +6,7 @@ const streamVideo =  require("../../libs/stream-video");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
 const throwHTTPError = require("../../utils/throw-http-error");
+const boringAvatarsUrl = require("../../utils/boring-avatars-url");
 
 module.exports = {
     getMeetings: async (data) => {
@@ -97,7 +98,8 @@ module.exports = {
         await streamVideo.upsertUsers([
             {
                 id: agent.id,
-                name: agent.name
+                name: agent.name,
+                image: boringAvatarsUrl({ name: agent.name })
             }
         ]);
     },
@@ -142,8 +144,9 @@ module.exports = {
         await streamVideo.upsertUsers([
             {
                 id: user.id,
+                role: "admin",
                 name: user.name,
-                role: "admin"
+                image: boringAvatarsUrl({ name: user.name })
             }
         ]);
 
