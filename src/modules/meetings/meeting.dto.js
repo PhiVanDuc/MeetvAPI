@@ -152,11 +152,5 @@ module.exports = {
     deleteMeetingRequest: z.object({
         id: z
             .uuidv4({ error: "Id cuộc họp không hợp lệ." })
-    }),
-
-    generateUserVideoTokenResponse: z.object({
-        token: z
-            .string({ error: "Video token của cuộc họp cần phải là chuỗi." })
-            .min(1, { error: "Video token của cuộc họp không thể để trống." })
     })
 }

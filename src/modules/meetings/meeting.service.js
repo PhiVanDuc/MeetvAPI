@@ -2,7 +2,7 @@ const { Op } = require("sequelize");
 const { User, Agent, Meeting } = require("../../db/models/index");
 
 const meetingDTO = require("./meeting.dto");
-const streamVideo =  require("../../libs/stream-video");
+const streamVideo =  require("../../libs/stream");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
 const throwHTTPError = require("../../utils/throw-http-error");
@@ -135,26 +135,5 @@ module.exports = {
 
         const call = streamVideo.video.call("default", data.id);
         if (call) await call.delete({ hard: true });
-    },
-
-    generateUserVideoToken: async (data) => {
-        const user = await User.findByPk(data.userId);
-        if (!user) throwHTTPError({ status: 404, message: "Người dùng không tồn tại." });
-
-        await streamVideo.upsertUsers([
-            {
-                id: user.id,
-                role: "admin",
-                name: user.name,
-                image: boringAvatarsUrl({ name: user.name })
-            }
-        ]);
-
-        const token = streamVideo.generateUserToken({
-            user_id: user.id,
-            validity_in_seconds: 3600
-        });
-
-        return meetingDTO.generateUserVideoTokenResponse.parse({ token });
     }
 }

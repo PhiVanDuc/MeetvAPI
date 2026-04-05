@@ -5,7 +5,8 @@
     "main": "server.js",
     "scripts": {
         "dev": "nodemon server",
-        "start": "node server"
+        "start": "node server",
+        "expose": "ngrok http --url=equal-moccasin-ghastly.ngrok-free.app 3001"
     },
     "keywords": [],
     "author": "",
