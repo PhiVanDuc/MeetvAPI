@@ -1,7 +1,7 @@
 const { User, Agent, Meeting } = require("../../db/models/index");
 
-const streamVideoDTO = require("./stream.dto");
-const streamVideo =  require("../../libs/stream");
+const streamDTO = require("./stream.dto");
+const stream =  require("../../libs/stream");
 const throwHTTPError = require("../../utils/throw-http-error");
 const boringAvatarsUrl = require("../../utils/boring-avatars-url");
 const { CallEndedEvent, MessageNewEvent, CallTranscriptionReadyEvent, CallSessionParticipantLeftEvent, CallRecordingReadyEvent, CallSessionStartedEvent } = require("@stream-io/node-sdk");
@@ -13,7 +13,7 @@ module.exports = {
         const user = await User.findByPk(data.userId);
         if (!user) throwHTTPError({ status: 404, message: "Người dùng không tồn tại." });
 
-        await streamVideo.upsertUsers([
+        await stream.upsertUsers([
             {
                 id: user.id,
                 role: "admin",
@@ -22,16 +22,16 @@ module.exports = {
             }
         ]);
 
-        const token = streamVideo.generateUserToken({
+        const token = stream.generateUserToken({
             user_id: user.id,
             validity_in_seconds: 3600
         });
 
-        return streamVideoDTO.generateTokenResponse.parse({ token });
+        return streamDTO.generateTokenResponse.parse({ token });
     },
 
     webhook: async (data) => {
-        if (!streamVideo.verifyWebhook(data.body, data.signature)) throwHTTPError({ status: 401, message: "Signature không hợp lệ." });
+        if (!stream.verifyWebhook(data.body, data.signature)) throwHTTPError({ status: 401, message: "Signature không hợp lệ." });
 
         let payload;
         try { payload = JSON.parse(data.body,toString()); }
@@ -52,7 +52,7 @@ module.exports = {
                 await meeting.update({ startedAt: new Date() });
 
                 try {
-                    await fetch("http://localhost:8000/custom/join", {
+                    await fetch("http://localhost:8000/api/stream/agent/join", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -68,6 +68,40 @@ module.exports = {
                 catch (error) { console.error("Lỗi khi gọi api agent join:", error.message); }
             
                 break;
+        }
+    },
+
+    deleteUsers: async () => {
+        const response = await stream.queryUsers({
+            payload: {
+                filter_conditions: { id: { $ne: "phivanduc" } },
+                limit: 100,
+            }
+        });
+
+        const users = response.users;
+        const userIds = users.map(user => user.id);
+
+        await stream.deleteUsers({ 
+            user_ids: userIds,
+            user: 'hard', 
+            messages: 'hard' 
+        });
+    },
+
+    deleteCalls: async () => {
+        const { calls } = await stream.video.queryCalls({
+            filter_conditions: {},
+            limit: 100,
+        });
+
+        if (calls.length > 0) {
+            await Promise.all(
+                calls.map(({ call }) => {
+                    const callInstance = stream.video.call(call.type, call.id);
+                    return callInstance.delete({ hard: true });
+                })
+            );
         }
     }
 }

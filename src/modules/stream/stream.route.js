@@ -1,10 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const streamVideoController = require("./stream.controller");
+const streamController = require("./stream.controller");
 const authenticateMiddleware = require("../../middlewares/authenticate.middleware");
 
-router.post("/webhook", streamVideoController.webhook);
-router.post("/token", authenticateMiddleware, streamVideoController.generateToken);
+router.post("/webhook", streamController.webhook);
+router.post("/token", authenticateMiddleware, streamController.generateToken);
+
+router.delete("/users", streamController.deleteUsers);
+router.delete("/calls", streamController.deleteCalls);
 
 module.exports = router;

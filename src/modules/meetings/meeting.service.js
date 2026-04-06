@@ -2,7 +2,7 @@ const { Op } = require("sequelize");
 const { User, Agent, Meeting } = require("../../db/models/index");
 
 const meetingDTO = require("./meeting.dto");
-const streamVideo =  require("../../libs/stream");
+const stream =  require("../../libs/stream");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
 const throwHTTPError = require("../../utils/throw-http-error");
@@ -76,7 +76,7 @@ module.exports = {
             agentId: agent.id,
         });
 
-        const call = streamVideo.video.call("default", createdMeeting.id);
+        const call = stream.video.call("default", createdMeeting.id);
 
         await call.create({
             data: {
@@ -95,7 +95,7 @@ module.exports = {
             }
         });
 
-        await streamVideo.upsertUsers([
+        await stream.upsertUsers([
             {
                 id: agent.id,
                 name: agent.name,
@@ -133,7 +133,7 @@ module.exports = {
     deleteMeeting: async (data) => {
         await Meeting.destroy({ where: { id: data.id } });
 
-        const call = streamVideo.video.call("default", data.id);
-        if (call) await call.delete({ hard: true });
+        const call = stream.video.call('default', data.id);
+        try { await call.delete({ hard: true }); } catch(error) {}
     }
 }

@@ -1,6 +1,7 @@
 const { Op } = require("sequelize");
 const { Agent } = require("../../db/models/index");
 
+const stream =  require("../../libs/stream");
 const agentDTO = require("../agents/agent.dto");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
@@ -64,13 +65,22 @@ module.exports = {
 
         if (duplicateAgent) throwHTTPError({ status: 409, message: "Tên agent đã tồn tại." });
 
-        await agent.update({
+        const updatedAgent = await agent.update({
             name: data.name,
             instructions: data.instructions
         });
+
+        await stream.upsertUsers([
+            {
+                id: updatedAgent.id,
+                name: updatedAgent.name,
+                image: boringAvatarsUrl({ name: updatedAgent.name })
+            }
+        ]);
     },
 
     deleteAgent: async (data) => {
         await Agent.destroy({ where: { id: data.id } });
+        stream.deleteUsers({ user_ids: [data.id], user: "hard", messages: "hard" });
     }
 }
