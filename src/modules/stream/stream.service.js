@@ -6,6 +6,7 @@ const throwHTTPError = require("../../utils/throw-http-error");
 const boringAvatarsUrl = require("../../utils/boring-avatars-url");
 const { CallEndedEvent, MessageNewEvent, CallTranscriptionReadyEvent, CallSessionParticipantLeftEvent, CallRecordingReadyEvent, CallSessionStartedEvent } = require("@stream-io/node-sdk");
 
+const AI = process.env.AI;
 const MEETING_STATUSES = require("../../consts/meeting-statuses");
 
 module.exports = {
@@ -52,7 +53,7 @@ module.exports = {
                 await meeting.update({ startedAt: new Date() });
 
                 try {
-                    await fetch("http://localhost:8000/api/stream/agent/join", {
+                    await fetch(`${AI}/stream/agent/join`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({

@@ -51,6 +51,7 @@ module.exports = {
             }
         );
 
+        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
         return meetingDTO.getMeetingResponse.parse(meeting);
     },
 
