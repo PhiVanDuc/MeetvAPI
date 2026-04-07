@@ -3,7 +3,7 @@ const { User, Account, Code, sequelize } = require("../../db/models/index");
 
 const authDTO = require("./auth.dto");
 const hashCode = require("../../utils/hash-code");
-const sendEmail = require("../../libs/email/send-email");
+const sendEmail = require("../../libs/email/send");
 const { signJWT, verifyJWT } = require("../../libs/jwt");
 const generateCode = require("../../utils/generate-code");
 const hashPassword = require("../../utils/hash-password");

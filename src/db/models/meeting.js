@@ -53,9 +53,6 @@ module.exports = (sequelize, DataTypes) => {
             transcriptUrl: {
                 type: DataTypes.TEXT
             },
-            recordingUrl: {
-                type: DataTypes.TEXT
-            },
             summary: {
                 type: DataTypes.TEXT
             }

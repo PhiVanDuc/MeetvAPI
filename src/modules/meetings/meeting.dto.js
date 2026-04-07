@@ -73,12 +73,12 @@ module.exports = {
                         .date({ error: "Thời gian kết thúc cuộc họp cần phải là đối tượng thời gian." })
                         .nullable()
                         .optional(),
-                    transcriptUrl: z
-                        .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." })
+                    duration: z
+                        .number()
                         .nullable()
                         .optional(),
-                    recordingUrl: z
-                        .string({ error: "Đường dẫn video cuộc họp cần phải là chuỗi." })
+                    transcriptUrl: z
+                        .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." })
                         .nullable()
                         .optional(),
                     summary: z
@@ -115,12 +115,12 @@ module.exports = {
             .date({ error: "Thời gian kết thúc cuộc họp cần phải là đối tượng thời gian." })
             .nullable()
             .optional(),
-        transcriptUrl: z
-            .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." })
+        duration: z
+            .number()
             .nullable()
             .optional(),
-        recordingUrl: z
-            .string({ error: "Đường dẫn video cuộc họp cần phải là chuỗi." })
+        transcriptUrl: z
+            .string({ error: "Đường dẫn bản ghi văn bản cuộc họp cần phải là chuỗi." })
             .nullable()
             .optional(),
         summary: z

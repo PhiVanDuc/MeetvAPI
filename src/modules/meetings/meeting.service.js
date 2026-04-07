@@ -1,12 +1,46 @@
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 const { User, Agent, Meeting } = require("../../db/models/index");
 
 const meetingDTO = require("./meeting.dto");
 const stream =  require("../../libs/stream");
+const JSONL = require("jsonl-parse-stringify");
+const inngest = require("../../libs/inngest/client");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
+const { createAgent, gemini } = require("@inngest/agent-kit");
 const throwHTTPError = require("../../utils/throw-http-error");
 const boringAvatarsUrl = require("../../utils/boring-avatars-url");
+
+const MEETING_STATUSES = require("../../consts/meeting-statuses");
+
+const summarizer = createAgent({
+    name: "summarizer",
+    system: `
+        You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
+
+        Use the following markdown structure for every output:
+
+        ### Overview
+        Provide a detailed, engaging summary of the session's content. Focus on major features, user workflows, and any key takeaways. Write in a narrative style, using full sentences. Highlight unique or powerful aspects of the product, platform, or discussion.
+
+        ### Notes
+        Break down key content into thematic sections with timestamp ranges. Each section should summarize key points, actions, or demos in bullet format.
+
+        Example:
+        #### Section Name
+        - Main point or demo shown here
+        - Another key insight or interaction
+        - Follow-up tool or explanation provided
+
+        #### Next Section
+        - Feature X automatically does Y
+        - Mention of integration with Z
+    `.trim(),
+    model: gemini({
+        model: "gemini-2.5-flash",
+        apiKey: process.env.GEMINI_API_KEY
+    })
+});
 
 module.exports = {
     getMeetings: async (data) => {
@@ -28,16 +62,24 @@ module.exports = {
                 include: {
                     model: Agent,
                     as: "agent"
+                },
+                attributes: {
+                    include: [[
+                        Sequelize.literal(`EXTRACT(EPOCH FROM (ended_at - started_at))::INTEGER`),
+                        'duration'
+                    ]]
                 }
             }
         });
+
+        const plainRows = rows.map(row => row.get({ plain: true }));
 
         const countMeeting = await Meeting.count({
             where: { userId: data.userId },
             limit: 1
         });
 
-        return meetingDTO.getMeetingsResponse.parse({ ...rest, createdMeeting: countMeeting > 0, meetings: rows });
+        return meetingDTO.getMeetingsResponse.parse({ ...rest, createdMeeting: countMeeting > 0, meetings: plainRows });
     },
 
     getMeeting: async (data) => {
@@ -47,12 +89,18 @@ module.exports = {
                 include: {
                     model: Agent,
                     as: "agent"
+                },
+                attributes: {
+                    include: [[
+                        Sequelize.literal(`EXTRACT(EPOCH FROM (ended_at - started_at))::INTEGER`),
+                        'duration'
+                    ]]
                 }
             }
         );
 
         if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
-        return meetingDTO.getMeetingResponse.parse(meeting);
+        return meetingDTO.getMeetingResponse.parse(meeting.get({ plain: true }));
     },
 
     addMeeting: async (data) => {
@@ -136,5 +184,77 @@ module.exports = {
 
         const call = stream.video.call('default', data.id);
         try { await call.delete({ hard: true }); } catch(error) {}
-    }
+    },
+
+    processMeeting: inngest.createFunction(
+        {
+            id: "meeting/process",
+            triggers: [{ event: "meeting/process" }]
+        },
+        async ({ event, step }) => {
+            const response = await step.run(
+                "fetch-transcript",
+                async () => fetch(event.data.transcriptUrl).then(res => res.text())
+            );
+            
+            const transcript = await step.run(
+                "parse-transcript",
+                async () => JSONL.default.parse(response)
+            );
+
+            const transcriptWithSpeakers = await step.run(
+                "add-speakers",
+                async () => {
+                    const speakerIds = [...new Set(transcript.map(item => item.speaker_id))];
+
+                    const userSpeakers = await User.findAll({
+                        where: {
+                            id: { [Op.in]: speakerIds }
+                        }
+                    });
+
+                    const agentSpeakers = await Agent.findAll({
+                        where: {
+                            id: { [Op.in]: speakerIds }
+                        }
+                    });
+
+                    const userSpeakersPlain = userSpeakers.map(user => user.toJSON());
+                    const agentSpeakersPlain = agentSpeakers.map(agent => agent.toJSON());
+                    const speakers = [...userSpeakersPlain, ...agentSpeakersPlain];
+
+                    return transcript.map(item => {
+                        const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
+
+                        if (!speaker) {
+                            return {
+                                ...item,
+                                user: { name: "Unknown" }
+                            }
+                        }
+
+                        return {
+                            ...item,
+                            user: { name: speaker.name }
+                        }
+                    })
+                }
+            );
+
+            const { output } = await summarizer.run(`Summarize the following transcript: ${JSON.stringify(transcriptWithSpeakers)}`);
+
+            await step.run(
+                "save-summary",
+                async () => {
+                    await Meeting.update(
+                        {
+                            summary: output[0].content,
+                            status: MEETING_STATUSES.COMPLETED
+                        },
+                        { where: { id: event.data.meetingId } }
+                    )
+                }
+            )
+        }
+    )
 }

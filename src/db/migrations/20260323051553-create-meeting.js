@@ -52,9 +52,6 @@ module.exports = {
             transcript_url: {
                 type: Sequelize.TEXT
             },
-            recording_url: {
-                type: Sequelize.TEXT
-            },
             summary: {
                 type: Sequelize.TEXT
             },

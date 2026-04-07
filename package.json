@@ -4,20 +4,24 @@
     "description": "",
     "main": "server.js",
     "scripts": {
-        "dev": "nodemon server",
         "start": "node server",
-        "expose": "ngrok http --url=equal-moccasin-ghastly.ngrok-free.app 3001"
+        "dev": "nodemon server",
+        "expose": "ngrok http --url=equal-moccasin-ghastly.ngrok-free.app 3001",
+        "inngest": "npx --ignore-scripts=false inngest-cli@latest dev -u http://localhost:3001/api/inngest"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "dependencies": {
+        "@inngest/agent-kit": "^0.13.2",
         "@stream-io/node-sdk": "^0.7.49",
         "bcrypt": "^6.0.0",
         "bignumber.js": "^10.0.2",
         "cors": "^2.8.5",
         "dotenv": "^17.2.3",
         "express": "^5.1.0",
+        "inngest": "^4.1.2",
+        "jsonl-parse-stringify": "^1.0.3",
         "jsonwebtoken": "^9.0.3",
         "morgan": "^1.10.1",
         "multer": "^2.0.2",
