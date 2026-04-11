@@ -38,16 +38,14 @@ module.exports = {
         try { payload = JSON.parse(data.body,toString()); }
         catch(error) { throwHTTPError({ status: 400, message: "JSON không hợp lệ." }) }
 
+        console.log(payload.type);
+
         switch(payload.type) {
             case "call.session_started": {
                 const meetingId = payload.call.custom?.meetingId;
                 if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
 
-                const meeting = await Meeting.findOne({
-                    where: {
-                        id: meetingId,
-                        status: MEETING_STATUSES.UPCOMING
-                    },
+                const meeting = await Meeting.findByPk(meetingId, {
                     include: {
                         as: "agent",
                         model: Agent
@@ -62,21 +60,19 @@ module.exports = {
                     status: MEETING_STATUSES.HAPPENING
                 });
 
-                try {
-                    await fetch(`${AI}/stream/agent/join`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            call_id: meeting.id,
-                            call_type: "default",
-                            id: meeting.agent.id,
-                            name: meeting.agent.name,
-                            instructions: meeting.agent.instructions,
-                            image: boringAvatarsUrl({ name: meeting.agent.name })
-                        })
-                    });
-                }
-                catch (error) { console.error("Lỗi khi gọi api agent join:", error.message); }
+                await fetch(`${AI}/stream/agent/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        call_id: meeting.id,
+                        call_type: "default",
+                        id: meeting.agent.id,
+                        name: meeting.agent.name,
+                        instructions: meeting.agent.instructions,
+                        image: boringAvatarsUrl({ name: meeting.agent.name })
+                    })
+                }).catch(error => error);
+
                 break;
             }
             case "call.session_participant_left": {
@@ -85,25 +81,21 @@ module.exports = {
 
                 const call = stream.video.call("default", meetingId);
                 await call.end();
+
                 break;
             }
             case "call.session_ended": {
                 const meetingId = payload.call.custom?.meetingId;
                 if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
 
-                const meeting = await Meeting.findOne({
-                    where: {
-                        id: meetingId,
-                        status: MEETING_STATUSES.HAPPENING
-                    }
-                });
-
+                const meeting = await Meeting.findByPk(meetingId);
                 if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
 
                 await meeting.update({
                     endedAt: new Date(),
                     status: MEETING_STATUSES.PROCESSING
                 });
+                
                 break;
             }
             case "call.transcription_ready": {

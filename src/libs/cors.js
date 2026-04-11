@@ -1,8 +1,6 @@
 const cors = require("cors");
 
-const whitelist = [
-    process.env.FE
-];
+const whitelist = [process.env.FE];
 
 module.exports = cors({
     origin: (origin, callback) => {
@@ -11,6 +9,7 @@ module.exports = cors({
         if (whitelist.indexOf(origin) !== -1) callback(null, true);
         else callback(new Error('Không cho phép bởi cors!'));
     },
-    methods: "GET,POST,PUT,PATCH,DELETE",
+    allowedHeaders: "*",
     optionsSuccessStatus: 200,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
 });

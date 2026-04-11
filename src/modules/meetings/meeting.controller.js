@@ -64,5 +64,20 @@ module.exports = {
             return res.status(200).json({ message: "Xoá cuộc họp thành công." });
         }
         catch(error) { next(error); }
-    }
+    },
+
+    getMeetingTranscript: async (req, res, next) => {
+        try {
+            const params = req.params;
+            const data = meetingDTO.getMeetingRequest.parse(params);
+
+            const responseData = await meetingService.getMeetingTranscript(data);
+            
+            return res.status(200).json({
+                message: "Lấy ra lời thoại của cuộc họp thành công.",
+                data: responseData
+            });
+        }
+        catch(error) { next(error); }
+    },
 }

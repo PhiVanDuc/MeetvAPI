@@ -128,7 +128,7 @@ module.exports = {
                     accountId: account.id,
                     provider: account.provider
                 },
-                expiresIn: "2s"
+                expiresIn: "10m"
             });
 
             const refreshToken = signJWT({

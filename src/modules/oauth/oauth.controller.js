@@ -21,7 +21,7 @@ module.exports = {
                     if (error || !user) {
                         if (error) console.error(error);
                         if (!user) console.error({ info, status });
-                        return redirectError(error.message);
+                        return redirectError("Đăng nhập thất bại.");
                     }
 
                     const responseData = await oauthService.googleCallback(user);

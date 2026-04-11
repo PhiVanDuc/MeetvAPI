@@ -152,5 +152,31 @@ module.exports = {
     deleteMeetingRequest: z.object({
         id: z
             .uuidv4({ error: "Id cuộc họp không hợp lệ." })
-    })
+    }),
+
+    getMeetingTranscriptRequest: z.object({
+        id: z
+            .uuidv4({ error: "Id cuộc họp không hợp lệ." })
+    }),
+
+    getMeetingTranscriptResponse: z.object({
+        transcript: z.array(
+            z.object({
+                speaker_id: z
+                    .uuidv4({ error: "Id người nói không hợp lệ." }),
+                type: z
+                    .string({ error: "Loại câu thoại cần phải là chuỗi." }),
+                text: z
+                    .string({ error: "Đoạn văn bản câu thoại cần phải là chuỗi." }),
+                start_ts: z
+                    .number({ error: "Thời gian bắt đầu câu thoại cần phải là số." }),
+                stop_ts: z
+                    .number({ error: "Thời gian dừng câu thoại cần phải là số." }),
+                user: z.object({
+                    name: z
+                        .string({ error: "Tên người nói cần phải là chuỗi." })
+                })
+            })
+        )
+    }),
 }

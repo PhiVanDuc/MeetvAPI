@@ -136,7 +136,7 @@ module.exports = {
                 },
                 settings_override: {
                     transcription: {
-                        language: "en",
+                        language: "auto",
                         mode: "auto-on",
                         closed_caption_mode: "auto-on"
                     }
@@ -211,17 +211,15 @@ module.exports = {
                         where: {
                             id: { [Op.in]: speakerIds }
                         }
-                    });
-
+                    }).then(users => users.map(user => user.get({ plain: true })));
+            
                     const agentSpeakers = await Agent.findAll({
                         where: {
                             id: { [Op.in]: speakerIds }
                         }
-                    });
-
-                    const userSpeakersPlain = userSpeakers.map(user => user.toJSON());
-                    const agentSpeakersPlain = agentSpeakers.map(agent => agent.toJSON());
-                    const speakers = [...userSpeakersPlain, ...agentSpeakersPlain];
+                    }).then(agents => agents.map(agent => agent.get({ plain: true })));
+            
+                    const speakers = [...userSpeakers, ...agentSpeakers];
 
                     return transcript.map(item => {
                         const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
@@ -256,5 +254,50 @@ module.exports = {
                 }
             )
         }
-    )
+    ),
+
+    getMeetingTranscript: async (data) => {
+        const meeting = await Meeting.findByPk(data.id);
+        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
+        if (!meeting.transcriptUrl) return [];
+
+        const transcript = await fetch(meeting.transcriptUrl)
+            .then(res => res.text())
+            .then(text => JSONL.default.parse(text))
+            .catch(() => []);
+
+        const speakerIds = [...new Set(transcript.map(item => item.speaker_id))];
+
+        const userSpeakers = await User.findAll({
+            where: {
+                id: { [Op.in]: speakerIds }
+            }
+        }).then(users => users.map(user => user.get({ plain: true })));
+
+        const agentSpeakers = await Agent.findAll({
+            where: {
+                id: { [Op.in]: speakerIds }
+            }
+        }).then(agents => agents.map(agent => agent.get({ plain: true })));
+
+        const speakers = [...userSpeakers, ...agentSpeakers];
+
+        const transcriptWithSpeakers = transcript.map(item => {
+            const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
+
+            if (!speaker) {
+                return {
+                    ...item,
+                    user: { name: "Unknown" }
+                }
+            }
+
+            return {
+                ...item,
+                user: { name: speaker.name }
+            }
+        });
+
+        return meetingDTO.getMeetingTranscriptResponse.parse({ transcript: transcriptWithSpeakers });
+    }
 }
