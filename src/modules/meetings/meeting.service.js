@@ -16,6 +16,9 @@ const MEETING_STATUSES = require("../../consts/meeting-statuses");
 const summarizer = createAgent({
     name: "summarizer",
     system: `
+        ### CRITICAL LANGUAGE MATCHING
+        You MUST identify the language of the transcript and write the entire summary in that SAME LANGUAGE. (e.g., if the transcript is in Spanish, the summary must be in Spanish. If it is in Japanese, the summary must be in Japanese, etc.). This is the most important rule.
+
         You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
 
         Use the following markdown structure for every output:
@@ -37,7 +40,7 @@ const summarizer = createAgent({
         - Mention of integration with Z
     `.trim(),
     model: gemini({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.1-flash-lite-preview",
         apiKey: process.env.GEMINI_API_KEY
     })
 });
