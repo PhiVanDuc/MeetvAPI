@@ -136,8 +136,8 @@ module.exports = {
                 },
                 settings_override: {
                     transcription: {
-                        language: "auto",
                         mode: "auto-on",
+                        language: "auto",
                         closed_caption_mode: "auto-on"
                     }
                 }

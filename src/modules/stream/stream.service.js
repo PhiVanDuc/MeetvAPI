@@ -38,8 +38,6 @@ module.exports = {
         try { payload = JSON.parse(data.body,toString()); }
         catch(error) { throwHTTPError({ status: 400, message: "JSON không hợp lệ." }) }
 
-        console.log(payload.type);
-
         switch(payload.type) {
             case "call.session_started": {
                 const meetingId = payload.call.custom?.meetingId;
@@ -79,8 +77,10 @@ module.exports = {
                 const meetingId = payload.call_cid.split(":")[1];
                 if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
 
-                const call = stream.video.call("default", meetingId);
-                await call.end();
+                if (payload.participant?.user?.role === "admin") {
+                    const call = stream.video.call("default", meetingId);
+                    await call.end();
+                }
 
                 break;
             }

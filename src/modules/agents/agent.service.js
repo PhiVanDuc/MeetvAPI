@@ -6,6 +6,7 @@ const agentDTO = require("../agents/agent.dto");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
 const throwHTTPError = require("../../utils/throw-http-error");
+const boringAvatarsUrl = require("../../utils/boring-avatars-url");
 
 module.exports = {
     getAgents: async (data) => {
