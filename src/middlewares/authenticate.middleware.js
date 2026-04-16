@@ -8,8 +8,8 @@ module.exports = (req, res, next) => {
 
         if (payload?.isExpire || payload?.isInvalid) {
             const error = payload.isExpire 
-                ? { code: "session-expired", message: "Phiên đăng nhập đã hết hạn." }
-                : { code: "session-invalid", message: "Phiên đăng nhập không hợp lệ." };
+                ? { code: "auth-token-expired", message: "Phiên đăng nhập đã hết hạn." }
+                : { code: "auth-token-invalid", message: "Phiên đăng nhập không hợp lệ." };
                 
             throwHTTPError({
                 status: 401,
