@@ -18,8 +18,8 @@ module.exports = (req, res, next) => {
             });
         }
 
-        const { iat, exp, ...restUser } = payload;
-        req.user = restUser;
+        const { iat, exp, ...user } = payload;
+        req.user = user;
         
         next();
     }

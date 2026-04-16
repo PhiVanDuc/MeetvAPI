@@ -48,7 +48,7 @@ module.exports = {
             .array(
                 z.object({
                     id: z
-                        .uuid({ error: "Id agent không hợp lệ." }),
+                        .uuid({ error: "Id agent sai định dạng." }),
                     name: z
                         .string({ error: "Tên agent cần phải là chuỗi." }),
                     instructions: z
@@ -59,12 +59,12 @@ module.exports = {
 
     getAgentRequest: z.object({
         id: z
-            .uuidv4({ error: "Id agent không hợp lệ." })
+            .uuidv4({ error: "Id agent sai định dạng." })
     }),
 
     getAgentResponse: z.object({
         id: z
-            .uuid({ error: "Id agent không hợp lệ." }),
+            .uuid({ error: "Id agent sai định dạng." }),
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." }),
         instructions: z
@@ -84,7 +84,7 @@ module.exports = {
 
     updateAgentRequest: z.object({
         id: z
-            .uuidv4({ error: "Id agent không hợp lệ." }),
+            .uuidv4({ error: "Id agent sai định dạng." }),
         name: z
             .string({ error: "Tên agent cần phải là chuỗi." })
             .trim()
@@ -97,6 +97,6 @@ module.exports = {
 
     deleteAgentRequest: z.object({
         id: z
-            .uuidv4({ error: "Id agent không hợp lệ." })
+            .uuidv4({ error: "Id agent sai định dạng." })
     })
 }

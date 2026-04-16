@@ -54,17 +54,17 @@ module.exports = {
             .array(
                 z.object({
                     id: z
-                        .uuidv4({ error: "Id cuộc họp không hợp lệ." }),
+                        .uuidv4({ error: "Id cuộc họp sai định dạng." }),
                     agent: z.object({
                         id: z
-                            .uuidv4({ error: "Id agent không hợp lệ." }),
+                            .uuidv4({ error: "Id agent sai định dạng." }),
                         name: z
                             .string({ error: "Tên agent cần phải là chuỗi." })
                     }),
                     name: z
                         .string({ error: "Tên cuộc họp cần phải là chuỗi." }),
                     status: z
-                        .string({ error: "Trạng thái cuộc họp không hợp lệ." }),
+                        .enum(Object.values(MEETING_STATUSES) ,{ error: "Trạng thái cuộc họp không hợp lệ." }),
                     startedAt: z
                         .date({ error: "Thời gian bắt đầu cuộc họp cần phải là đối tượng thời gian." })
                         .nullable()
@@ -91,15 +91,15 @@ module.exports = {
 
     getMeetingRequest: z.object({
         id: z
-            .uuidv4({ error: "Id cuộc họp không hợp lệ." })
+            .uuidv4({ error: "Id cuộc họp sai định dạng." })
     }),
 
     getMeetingResponse: z.object({
         id: z
-            .uuidv4({ error: "Id cuộc họp không hợp lệ." }),
+            .uuidv4({ error: "Id cuộc họp sai định dạng." }),
         agent: z.object({
             id: z
-                .uuidv4({ error: "Id agent không hợp lệ." }),
+                .uuidv4({ error: "Id agent sai định dạng." }),
             name: z
                 .string({ error: "Tên agent cần phải là chuỗi." })
         }),
@@ -135,35 +135,35 @@ module.exports = {
             .trim()
             .min(1, { error: "Tên cuộc họp không thể để trống." }),
         agentId: z
-            .uuid({ error: "Id agent không hợp lệ." }),
+            .uuid({ error: "Id agent sai định dạng." }),
     }),
 
     updateMeetingRequest: z.object({
         id: z
-            .uuid({ error: "Id cuộc họp không hợp lệ." }),
+            .uuid({ error: "Id cuộc họp sai định dạng." }),
         name: z
             .string({ error: "Tên cuộc họp cần phải là chuỗi." })
             .trim()
             .min(1, { error: "Tên cuộc họp không thể để trống." }),
         agentId: z
-            .uuid({ error: "Id agent không hợp lệ." }),
+            .uuid({ error: "Id agent sai định dạng." }),
     }),
 
     deleteMeetingRequest: z.object({
         id: z
-            .uuidv4({ error: "Id cuộc họp không hợp lệ." })
+            .uuidv4({ error: "Id cuộc họp sai định dạng." })
     }),
 
     getMeetingTranscriptRequest: z.object({
         id: z
-            .uuidv4({ error: "Id cuộc họp không hợp lệ." })
+            .uuidv4({ error: "Id cuộc họp sai định dạng." })
     }),
 
     getMeetingTranscriptResponse: z.object({
         transcript: z.array(
             z.object({
                 speaker_id: z
-                    .uuidv4({ error: "Id người nói không hợp lệ." }),
+                    .uuidv4({ error: "Id người nói sai định dạng." }),
                 type: z
                     .string({ error: "Loại câu thoại cần phải là chuỗi." }),
                 text: z

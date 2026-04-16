@@ -5,14 +5,14 @@ module.exports = {
         code: z
             .string({ error: "Mã trao đổi cần phải là chuỗi." })
             .trim()
-            .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi không hợp lệ." })
+            .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi sai định dạng." })
     }),
 
     oauthSignInRequest: z.object({
         code: z
             .string({ error: "Mã trao đổi cần phải là chuỗi." })
             .trim()
-            .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi không hợp lệ." })
+            .regex(/^[a-f0-9]{64}$/, { error: "Mã trao đổi sai định dạng." })
     }),
 
     oauthSignInResponse: z.object({

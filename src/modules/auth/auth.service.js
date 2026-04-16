@@ -148,10 +148,7 @@ module.exports = {
         const accessToken = signJWT({
             payload: {
                 id: user.id,
-                name: user.name,
-                email: user.email,
-                accountId: account.id,
-                provider: account.provider
+                accountId: account.id
             },
             expiresIn: "10m"
         });
@@ -235,10 +232,7 @@ module.exports = {
         const accessToken = signJWT({
             payload: {
                 id: user.id,
-                name: user.name,
-                email: user.email,
-                accountId: account.id,
-                provider: account.provider
+                accountId: account.id
             },
             expiresIn: "10m"
         });

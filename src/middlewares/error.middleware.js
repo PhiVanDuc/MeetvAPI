@@ -8,7 +8,7 @@ module.exports = (error, req, res, next) => {
 
     if (error instanceof ZodError) {
         status = 400;
-        message = "Lỗi định dạng dữ liệu!";
+        message = "Dữ liệu trả về từ server không hợp lệ!";
 
         errors = error.issues.map(error => ({
             code: error.code,
