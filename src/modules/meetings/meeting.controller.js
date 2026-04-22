@@ -80,4 +80,45 @@ module.exports = {
         }
         catch(error) { next(error); }
     },
+
+    generateStreamToken: async (req, res, next) => {
+        try {
+            const responseData = await meetingService.generateStreamToken({ userId: req.user.id });
+
+            return res.status(200).json({
+                message: "Tạo stream token thành công.",
+                data: responseData
+            });
+        }
+        catch(error) { next(error); }
+    },
+
+    triggerStreamWebhook: async (req, res, next) => {
+        try {
+            await meetingService.triggerStreamWebhook({
+                signature: req.get("x-signature"),
+                apiKey: req.get("x-api-key"),
+                body: req.rawBody
+            });
+            
+            return res.status(200).json({ message: "Tiếp nhận stream webhook thành công!" });
+        }
+        catch(error) { next(error); }
+    },
+
+    deleteStreamUsers: async (req, res, next) => {
+        try {
+            await meetingService.deleteStreamUsers();
+            return res.status(200).json({ message: `Xoá các người dùng stream thành công.` });
+        }
+        catch(error) { next(error); }
+    },
+
+    deleteStreamCalls: async (req, res, next) => {
+        try {
+            await meetingService.deleteStreamCalls();
+            return res.status(200).json({ message: `Xoá các cuộc gọi stream thành công.` });
+        }
+        catch(error) { next(error); }
+    }
 }

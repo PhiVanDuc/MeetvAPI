@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { User, Account, Code, sequelize } = require("../../db/models/index");
+const { User, Account, Code, Subscription, sequelize } = require("../../db/models/index");
 
 const authDTO = require("./auth.dto");
 const hashCode = require("../../utils/hash-code");
@@ -94,6 +94,15 @@ module.exports = {
                     },
                     { transaction }
                 );
+
+                await Subscription.create(
+                    {
+                        userId: user.id,
+                        servicePriceId: "free",
+                        serviceSubscriptionId: "free"
+                    },
+                    { transaction }
+                );
             }
 
             await Account.create(
@@ -104,7 +113,7 @@ module.exports = {
                     password: await hashPassword({ password: data.password })
                 },
                 { transaction }
-            )
+            );
 
             await Code.destroy({
                 where: {

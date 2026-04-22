@@ -7,43 +7,12 @@ const JSONL = require("jsonl-parse-stringify");
 const inngest = require("../../libs/inngest/client");
 const baseRepository = require("../base/base.repository");
 const formatFilter = require("../../utils/format-filter");
-const { createAgent, gemini } = require("@inngest/agent-kit");
+const summarizer = require("../../libs/inngest/summarizer");
 const throwHTTPError = require("../../utils/throw-http-error");
 const boringAvatarsUrl = require("../../utils/boring-avatars-url");
 
+const AI = process.env.AI;
 const MEETING_STATUSES = require("../../consts/meeting-statuses");
-
-const summarizer = createAgent({
-    name: "summarizer",
-    system: `
-        ### CRITICAL LANGUAGE MATCHING
-        You MUST identify the language of the transcript and write the entire summary in that SAME LANGUAGE. (e.g., if the transcript is in Spanish, the summary must be in Spanish. If it is in Japanese, the summary must be in Japanese, etc.). This is the most important rule.
-
-        You are an expert summarizer. You write readable, concise, simple content. You are given a transcript of a meeting and you need to summarize it.
-
-        Use the following markdown structure for every output:
-
-        ### Overview
-        Provide a detailed, engaging summary of the session's content. Focus on major features, user workflows, and any key takeaways. Write in a narrative style, using full sentences. Highlight unique or powerful aspects of the product, platform, or discussion.
-
-        ### Notes
-        Break down key content into thematic sections with timestamp ranges. Each section should summarize key points, actions, or demos in bullet format.
-
-        Example:
-        #### Section Name
-        - Main point or demo shown here
-        - Another key insight or interaction
-        - Follow-up tool or explanation provided
-
-        #### Next Section
-        - Feature X automatically does Y
-        - Mention of integration with Z
-    `.trim(),
-    model: gemini({
-        model: "gemini-3.1-flash-lite-preview",
-        apiKey: process.env.GEMINI_API_KEY
-    })
-});
 
 module.exports = {
     getMeetings: async (data) => {
@@ -189,6 +158,51 @@ module.exports = {
         try { await call.delete({ hard: true }); } catch(error) {}
     },
 
+    getMeetingTranscript: async (data) => {
+        const meeting = await Meeting.findByPk(data.id);
+        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
+        if (!meeting.transcriptUrl) return [];
+
+        const transcript = await fetch(meeting.transcriptUrl)
+            .then(res => res.text())
+            .then(text => JSONL.default.parse(text))
+            .catch(() => []);
+
+        const speakerIds = [...new Set(transcript.map(item => item.speaker_id))];
+
+        const userSpeakers = await User.findAll({
+            where: {
+                id: { [Op.in]: speakerIds }
+            }
+        }).then(users => users.map(user => user.get({ plain: true })));
+
+        const agentSpeakers = await Agent.findAll({
+            where: {
+                id: { [Op.in]: speakerIds }
+            }
+        }).then(agents => agents.map(agent => agent.get({ plain: true })));
+
+        const speakers = [...userSpeakers, ...agentSpeakers];
+
+        const transcriptWithSpeakers = transcript.map(item => {
+            const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
+
+            if (!speaker) {
+                return {
+                    ...item,
+                    user: { name: "Unknown" }
+                }
+            }
+
+            return {
+                ...item,
+                user: { name: speaker.name }
+            }
+        });
+
+        return meetingDTO.getMeetingTranscriptResponse.parse({ transcript: transcriptWithSpeakers });
+    },
+
     processMeeting: inngest.createFunction(
         {
             id: "meeting/process",
@@ -259,48 +273,146 @@ module.exports = {
         }
     ),
 
-    getMeetingTranscript: async (data) => {
-        const meeting = await Meeting.findByPk(data.id);
-        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
-        if (!meeting.transcriptUrl) return [];
+    generateStreamToken: async (data) => {
+        const user = await User.findByPk(data.userId);
+        if (!user) throwHTTPError({ status: 404, message: "Người dùng không tồn tại." });
 
-        const transcript = await fetch(meeting.transcriptUrl)
-            .then(res => res.text())
-            .then(text => JSONL.default.parse(text))
-            .catch(() => []);
-
-        const speakerIds = [...new Set(transcript.map(item => item.speaker_id))];
-
-        const userSpeakers = await User.findAll({
-            where: {
-                id: { [Op.in]: speakerIds }
+        await stream.upsertUsers([
+            {
+                id: user.id,
+                role: "admin",
+                name: user.name,
+                image: boringAvatarsUrl({ name: user.name })
             }
-        }).then(users => users.map(user => user.get({ plain: true })));
+        ]);
 
-        const agentSpeakers = await Agent.findAll({
-            where: {
-                id: { [Op.in]: speakerIds }
+        const token = stream.generateUserToken({
+            user_id: user.id,
+            validity_in_seconds: 3600
+        });
+
+        return meetingDTO.generateStreamTokenResponse.parse({ token });
+    },
+
+    triggerStreamWebhook: async (data) => {
+        if (!stream.verifyWebhook(data.body, data.signature)) throwHTTPError({ status: 401, message: "Signature không hợp lệ." });
+
+        let payload;
+        try { payload = JSON.parse(data.body.toString()); }
+        catch(error) { throwHTTPError({ status: 400, message: "JSON không hợp lệ." }) }
+
+        switch(payload.type) {
+            case "call.session_started": {
+                const meetingId = payload.call.custom?.meetingId;
+                if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
+
+                const meeting = await Meeting.findByPk(meetingId, {
+                    include: {
+                        as: "agent",
+                        model: Agent
+                    }
+                });
+
+                if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
+                if (!meeting.agent) throwHTTPError({ status: 404, message: "Agent không tồn tại." });
+
+                await meeting.update({
+                    startedAt: new Date(),
+                    status: MEETING_STATUSES.HAPPENING
+                });
+
+                await fetch(`${AI}/stream/agent/join`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        call_id: meeting.id,
+                        call_type: "default",
+                        id: meeting.agent.id,
+                        name: meeting.agent.name,
+                        instructions: meeting.agent.instructions,
+                        image: boringAvatarsUrl({ name: meeting.agent.name })
+                    })
+                }).catch(error => error);
+
+                break;
             }
-        }).then(agents => agents.map(agent => agent.get({ plain: true })));
+            case "call.session_participant_left": {
+                const meetingId = payload.call_cid.split(":")[1];
+                if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
 
-        const speakers = [...userSpeakers, ...agentSpeakers];
-
-        const transcriptWithSpeakers = transcript.map(item => {
-            const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
-
-            if (!speaker) {
-                return {
-                    ...item,
-                    user: { name: "Unknown" }
+                if (payload.participant?.user?.role === "admin") {
+                    const call = stream.video.call("default", meetingId);
+                    await call.end();
                 }
-            }
 
-            return {
-                ...item,
-                user: { name: speaker.name }
+                break;
+            }
+            case "call.session_ended": {
+                const meetingId = payload.call.custom?.meetingId;
+                if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
+
+                const meeting = await Meeting.findByPk(meetingId);
+                if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
+
+                await meeting.update({
+                    endedAt: new Date(),
+                    status: MEETING_STATUSES.PROCESSING
+                });
+                
+                break;
+            }
+            case "call.transcription_ready": {
+                const meetingId = payload.call_cid.split(":")[1];
+                if (!meetingId) throwHTTPError({ status: 400, message: "Id cuộc họp không hợp lệ." });
+
+                const meeting = await Meeting.findByPk(meetingId);
+                if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
+                await meeting.update({ transcriptUrl: payload.call_transcription.url });
+
+                await inngest.send({
+                    name: "meeting/process",
+                    data: {
+                        meetingId: meeting.id,
+                        transcriptUrl: meeting.transcriptUrl
+                    }
+                });
+
+                break;
+            }
+        }
+    },
+
+    deleteStreamUsers: async () => {
+        const response = await stream.queryUsers({
+            payload: {
+                filter_conditions: { id: { $ne: "phivanduc" } },
+                limit: 100,
             }
         });
 
-        return meetingDTO.getMeetingTranscriptResponse.parse({ transcript: transcriptWithSpeakers });
+        const users = response.users;
+        const userIds = users.map(user => user.id);
+
+        await stream.deleteUsers({ 
+            user_ids: userIds,
+            user: 'hard', 
+            messages: 'hard' 
+        });
+    },
+
+    deleteStreamCalls: async () => {
+        const { calls } = await stream.video.queryCalls({
+            filter_conditions: {},
+            limit: 100,
+        });
+
+        if (calls.length > 0) {
+            await Promise.all(
+                calls.map(({ call }) => {
+                    const callInstance = stream.video.call(call.type, call.id);
+                    return callInstance.delete({ hard: true });
+                })
+            );
+        }
     }
 }

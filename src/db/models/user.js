@@ -20,9 +20,9 @@ module.exports = (sequelize, DataTypes) => {
                 as: "meetings"
             });
 
-            User.hasOne(models.Subcription, {
+            User.hasOne(models.Subscription, {
                 foreignKey: "userId",
-                as: "subcription"
+                as: "subscription"
             });
         }
     }
@@ -35,6 +35,10 @@ module.exports = (sequelize, DataTypes) => {
                 unique: true,
                 primaryKey: true,
                 defaultValue: DataTypes.UUIDV4
+            },
+            serviceCustomerId: {
+                type: DataTypes.TEXT,
+                allowNull: true
             },
             name: {
                 type: DataTypes.STRING,

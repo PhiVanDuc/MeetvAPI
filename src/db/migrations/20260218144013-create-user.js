@@ -12,6 +12,10 @@ module.exports = {
                 primaryKey: true,
                 defaultValue: Sequelize.UUIDV4
             },
+            service_customer_id: {
+                type: Sequelize.TEXT,
+                allowNull: true
+            },
             name: {
                 type: Sequelize.STRING,
                 allowNull: false

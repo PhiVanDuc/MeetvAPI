@@ -3,16 +3,16 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class Subcription extends Model {
+    class Subscription extends Model {
         static associate(models) {
-            Subcription.belongsTo(models.User, {
+            Subscription.belongsTo(models.User, {
                 foreignKey: "userId",
                 as: "user"
             });
         }
     }
-    
-    Subcription.init(
+
+    Subscription.init(
         {
             id: {
                 type: DataTypes.UUID,
@@ -26,7 +26,7 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
                 unique: true
             },
-            serviceSubcriptionId: {
+            serviceSubscriptionId: {
                 type: DataTypes.TEXT,
                 allowNull: false
             },
@@ -36,21 +36,20 @@ module.exports = (sequelize, DataTypes) => {
             },
             currentPeriodStart: {
                 type: DataTypes.DATE,
-                allowNull: false
+                allowNull: true
             },
             currentPeriodEnd: {
                 type: DataTypes.DATE,
                 allowNull: true
             }
-        }, 
+        },
         {
             sequelize,
-            modelName: "Subcription",
-            tableName: "subcriptions",
+            modelName: "Subscription",
+            tableName: "subscriptions",
             underscored: true,
             timestamps: true
         }
     );
-    
-    return Subcription;
+    return Subscription;
 };

@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { User, Account, Code, sequelize } = require("../../db/models/index");
+const { User, Account, Code, Subscription, sequelize } = require("../../db/models/index");
 
 const oauthDTO = require("./oauth.dto");
 const { signJWT } = require("../../libs/jwt");
@@ -37,6 +37,15 @@ module.exports = {
                 if (!user) {
                     user = await User.create(
                         { name, email },
+                        { transaction }
+                    );
+
+                    await Subscription.create(
+                        {
+                            userId: user.id,
+                            servicePriceId: "free",
+                            serviceSubscriptionId: "free"
+                        },
                         { transaction }
                     );
                 }

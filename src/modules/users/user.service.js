@@ -1,4 +1,4 @@
-const { User, Account, Subcription } = require("../../db/models/index");
+const { User, Account, Subscription } = require("../../db/models/index");
 
 const userDTO = require("./user.dto");
 const throwHTTPError = require("../../utils/throw-http-error");
@@ -15,20 +15,20 @@ module.exports = {
                         where: { id: data.accountId }
                     },
                     {
-                        model: Subcription,
-                        as: "subcription"
+                        model: Subscription,
+                        as: "subscription"
                     }
                 ]
             }
-        )
+        );
 
         if (!profile) throwHTTPError({ status: 404, message: "Người dùng không tồn tại." });
-        const { subcription, accounts, ...user } = profile.get({ plain: true });
+        const { subscription, accounts, ...user } = profile.get({ plain: true });
 
         return userDTO.getProfileResponse.parse({
             ...user,
             account: accounts[0],
-            ...(subcription ? { subcription } : {})
+            ...(subscription ? { subscription } : {})
         });
     }
 }

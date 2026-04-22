@@ -4,7 +4,7 @@
 
 module.exports = {
     async up(queryInterface, Sequelize) {
-        await queryInterface.createTable('subcriptions', {
+        await queryInterface.createTable('subscriptions', {
             id: {
                 type: Sequelize.UUID,
                 allowNull: false,
@@ -23,7 +23,7 @@ module.exports = {
                 onDelete: "CASCADE",
                 onUpdate: "CASCADE"
             },
-            service_subcription_id: {
+            service_subscription_id: {
                 type: Sequelize.TEXT,
                 allowNull: false
             },
@@ -33,7 +33,7 @@ module.exports = {
             },
             current_period_start: {
                 type: Sequelize.DATE,
-                allowNull: false
+                allowNull: true
             },
             current_period_end: {
                 type: Sequelize.DATE,
@@ -49,8 +49,7 @@ module.exports = {
             }
         });
     },
-
     async down(queryInterface, Sequelize) {
-        await queryInterface.dropTable('subcriptions');
+        await queryInterface.dropTable('subscriptions');
     }
 };
