@@ -22,11 +22,7 @@ module.exports = {
             options: { where }
         });
 
-        const countAgent = await Agent.count({
-            where: { userId: data.userId },
-            limit: 1
-        });
-
+        const countAgent = await Agent.count({ where: { userId: data.userId }, limit: 1 });
         return agentDTO.getAgentsResponse.parse({ ...rest, createdAgent: countAgent > 0, agents: rows });
     },
 

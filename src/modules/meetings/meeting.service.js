@@ -37,7 +37,13 @@ module.exports = {
                 },
                 attributes: {
                     include: [[
-                        Sequelize.literal(`EXTRACT(EPOCH FROM (ended_at - started_at))::INTEGER`),
+                        Sequelize.literal(`
+                            CASE 
+                                WHEN ended_at > started_at 
+                                THEN EXTRACT(EPOCH FROM (ended_at - started_at))::INTEGER 
+                                ELSE NULL 
+                            END    
+                        `),
                         'duration'
                     ]]
                 }
@@ -45,12 +51,7 @@ module.exports = {
         });
 
         const plainRows = rows.map(row => row.get({ plain: true }));
-
-        const countMeeting = await Meeting.count({
-            where: { userId: data.userId },
-            limit: 1
-        });
-
+        const countMeeting = await Meeting.count({ where: { userId: data.userId }, limit: 1 });
         return meetingDTO.getMeetingsResponse.parse({ ...rest, createdMeeting: countMeeting > 0, meetings: plainRows });
     },
 
@@ -64,14 +65,19 @@ module.exports = {
                 },
                 attributes: {
                     include: [[
-                        Sequelize.literal(`EXTRACT(EPOCH FROM (ended_at - started_at))::INTEGER`),
+                        Sequelize.literal(`
+                            CASE 
+                                WHEN ended_at > started_at 
+                                THEN EXTRACT(EPOCH FROM (ended_at - started_at))::INTEGER 
+                                ELSE NULL 
+                            END    
+                        `),
                         'duration'
                     ]]
                 }
             }
         );
 
-        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
         return meetingDTO.getMeetingResponse.parse(meeting.get({ plain: true }));
     },
 
@@ -97,6 +103,21 @@ module.exports = {
             agentId: agent.id,
         });
 
+        await stream.upsertUsers([
+            {
+                id: user.id,
+                role: "admin",
+                name: user.name,
+                image: boringAvatarsUrl({ name: user.name })
+            },
+            {
+                id: agent.id,
+                role: "user",
+                name: agent.name,
+                image: boringAvatarsUrl({ name: agent.name })
+            }
+        ]);
+
         const call = stream.video.call("default", createdMeeting.id);
 
         await call.create({
@@ -115,30 +136,19 @@ module.exports = {
                 }
             }
         });
-
-        await stream.upsertUsers([
-            {
-                id: agent.id,
-                name: agent.name,
-                image: boringAvatarsUrl({ name: agent.name })
-            }
-        ]);
     },
 
     updateMeeting: async (data) => {
-        const user = await User.findByPk(data.userId);
-        if (!user) throwHTTPError({ status: 404, message: "Người dùng không tồn tại." });
+        const meeting = await Meeting.findByPk(data.id);
+        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
 
         const agent = await Agent.findByPk(data.agentId);
         if (!agent) throwHTTPError({ status: 404, message: "Agent không tồn tại." });
 
-        const meeting = await Meeting.findByPk(data.id);
-        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
-
         const duplicateMeeting = await Meeting.findOne({
             where: {
                 name: data.name,
-                userId: user.id,
+                userId: data.userId,
                 id: { [Op.ne]: meeting.id }
             }
         });
@@ -149,58 +159,31 @@ module.exports = {
             name: data.name,
             agentId: agent.id
         });
+
+        await stream.upsertUsers([
+            {
+                id: agent.id,
+                role: "user",
+                name: agent.name,
+                image: boringAvatarsUrl({ name: agent.name })
+            }
+        ]);
     },
 
     deleteMeeting: async (data) => {
         await Meeting.destroy({ where: { id: data.id } });
 
         const call = stream.video.call('default', data.id);
-        try { await call.delete({ hard: true }); } catch(error) {}
+        try { await call.delete({ hard: true }); } catch(error) { /* Không làm gì cả. */ }
     },
 
-    getMeetingTranscript: async (data) => {
-        const meeting = await Meeting.findByPk(data.id);
-        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
-        if (!meeting.transcriptUrl) return [];
-
-        const transcript = await fetch(meeting.transcriptUrl)
-            .then(res => res.text())
-            .then(text => JSONL.default.parse(text))
-            .catch(() => []);
-
-        const speakerIds = [...new Set(transcript.map(item => item.speaker_id))];
-
-        const userSpeakers = await User.findAll({
-            where: {
-                id: { [Op.in]: speakerIds }
-            }
-        }).then(users => users.map(user => user.get({ plain: true })));
-
-        const agentSpeakers = await Agent.findAll({
-            where: {
-                id: { [Op.in]: speakerIds }
-            }
-        }).then(agents => agents.map(agent => agent.get({ plain: true })));
-
-        const speakers = [...userSpeakers, ...agentSpeakers];
-
-        const transcriptWithSpeakers = transcript.map(item => {
-            const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
-
-            if (!speaker) {
-                return {
-                    ...item,
-                    user: { name: "Unknown" }
-                }
-            }
-
-            return {
-                ...item,
-                user: { name: speaker.name }
-            }
+    generateStreamToken: async (data) => {
+        const token = stream.generateUserToken({
+            user_id: data.userId,
+            validity_in_seconds: 3600
         });
 
-        return meetingDTO.getMeetingTranscriptResponse.parse({ transcript: transcriptWithSpeakers });
+        return meetingDTO.generateStreamTokenResponse.parse({ token });
     },
 
     processMeeting: inngest.createFunction(
@@ -222,41 +205,44 @@ module.exports = {
             const transcriptWithSpeakers = await step.run(
                 "add-speakers",
                 async () => {
-                    const speakerIds = [...new Set(transcript.map(item => item.speaker_id))];
+                    const speakerIds = [
+                        ...new Set(
+                            transcript.map(item => item.speaker_id)
+                        )
+                    ];
 
                     const userSpeakers = await User.findAll({
                         where: {
                             id: { [Op.in]: speakerIds }
                         }
-                    }).then(users => users.map(user => user.get({ plain: true })));
+                    })
+                    .then(users => users.map(user => user.get({ plain: true })));
             
                     const agentSpeakers = await Agent.findAll({
                         where: {
                             id: { [Op.in]: speakerIds }
                         }
-                    }).then(agents => agents.map(agent => agent.get({ plain: true })));
+                    })
+                    .then(agents => agents.map(agent => agent.get({ plain: true })));
             
-                    const speakers = [...userSpeakers, ...agentSpeakers];
+                    const speakers = [
+                        ...userSpeakers,
+                        ...agentSpeakers
+                    ];
 
                     return transcript.map(item => {
                         const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
 
-                        if (!speaker) {
-                            return {
-                                ...item,
-                                user: { name: "Unknown" }
-                            }
-                        }
-
-                        return {
-                            ...item,
-                            user: { name: speaker.name }
-                        }
-                    })
+                        if (!speaker) return { ...item, user: { name: "Unknown" } }
+                        return { ...item, user: { name: speaker.name } }
+                    });
                 }
             );
 
-            const { output } = await summarizer.run(`Summarize the following transcript: ${JSON.stringify(transcriptWithSpeakers)}`);
+            const { output } = await step.run(
+                "summary",
+                async () => await summarizer.run(`Summarize the following transcript: ${JSON.stringify(transcriptWithSpeakers)}`)
+            );
 
             await step.run(
                 "save-summary",
@@ -269,30 +255,9 @@ module.exports = {
                         { where: { id: event.data.meetingId } }
                     )
                 }
-            )
+            );
         }
     ),
-
-    generateStreamToken: async (data) => {
-        const user = await User.findByPk(data.userId);
-        if (!user) throwHTTPError({ status: 404, message: "Người dùng không tồn tại." });
-
-        await stream.upsertUsers([
-            {
-                id: user.id,
-                role: "admin",
-                name: user.name,
-                image: boringAvatarsUrl({ name: user.name })
-            }
-        ]);
-
-        const token = stream.generateUserToken({
-            user_id: user.id,
-            validity_in_seconds: 3600
-        });
-
-        return meetingDTO.generateStreamTokenResponse.parse({ token });
-    },
 
     triggerStreamWebhook: async (data) => {
         if (!stream.verifyWebhook(data.body, data.signature)) throwHTTPError({ status: 401, message: "Signature không hợp lệ." });
@@ -380,6 +345,49 @@ module.exports = {
                 break;
             }
         }
+    },
+
+    getMeetingTranscript: async (data) => {
+        const meeting = await Meeting.findByPk(data.id);
+        if (!meeting) throwHTTPError({ status: 404, message: "Cuộc họp không tồn tại." });
+        if (!meeting.transcriptUrl) return [];
+
+        const transcript = await fetch(meeting.transcriptUrl)
+            .then(res => res.text())
+            .then(text => JSONL.default.parse(text))
+            .catch(() => []);
+
+        const speakerIds = [
+            ...new Set(
+                transcript.map(item => item.speaker_id)
+            )
+        ];
+
+        const userSpeakers = await User.findAll({
+            where: {
+                id: { [Op.in]: speakerIds }
+            }
+        }).then(users => users.map(user => user.get({ plain: true })));
+
+        const agentSpeakers = await Agent.findAll({
+            where: {
+                id: { [Op.in]: speakerIds }
+            }
+        }).then(agents => agents.map(agent => agent.get({ plain: true })));
+
+        const speakers = [
+            ...userSpeakers,
+            ...agentSpeakers
+        ];
+
+        const transcriptWithSpeakers = transcript.map(item => {
+            const speaker = speakers.find(speaker => speaker.id === item.speaker_id);
+
+            if (!speaker) return { ...item, user: { name: "Unknown" } }
+            return { ...item, user: { name: speaker.name } }
+        });
+
+        return meetingDTO.getMeetingTranscriptResponse.parse({ transcript: transcriptWithSpeakers });
     },
 
     deleteStreamUsers: async () => {

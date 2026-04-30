@@ -66,21 +66,6 @@ module.exports = {
         catch(error) { next(error); }
     },
 
-    getMeetingTranscript: async (req, res, next) => {
-        try {
-            const params = req.params;
-            const data = meetingDTO.getMeetingRequest.parse(params);
-
-            const responseData = await meetingService.getMeetingTranscript(data);
-            
-            return res.status(200).json({
-                message: "Lấy ra lời thoại của cuộc họp thành công.",
-                data: responseData
-            });
-        }
-        catch(error) { next(error); }
-    },
-
     generateStreamToken: async (req, res, next) => {
         try {
             const responseData = await meetingService.generateStreamToken({ userId: req.user.id });
@@ -101,7 +86,22 @@ module.exports = {
                 body: req.rawBody
             });
             
-            return res.status(200).json({ message: "Tiếp nhận stream webhook thành công!" });
+            return res.status(200).json({ message: "Tiếp nhận webhook stream thành công!" });
+        }
+        catch(error) { next(error); }
+    },
+
+    getMeetingTranscript: async (req, res, next) => {
+        try {
+            const params = req.params;
+            const data = meetingDTO.getMeetingRequest.parse(params);
+
+            const responseData = await meetingService.getMeetingTranscript(data);
+            
+            return res.status(200).json({
+                message: "Lấy ra lời thoại của cuộc họp thành công.",
+                data: responseData
+            });
         }
         catch(error) { next(error); }
     },
