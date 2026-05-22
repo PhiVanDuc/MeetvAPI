@@ -1,9 +1,9 @@
 const userService = require("./user.service");
 
 module.exports = {
-    profile: async (req, res, next) => {
+    getProfile: async (req, res, next) => {
         try {
-            const responseData = await userService.profile({
+            const responseData = await userService.getProfile({
                 userId: req.user.id,
                 accountId: req.user.accountId
             });

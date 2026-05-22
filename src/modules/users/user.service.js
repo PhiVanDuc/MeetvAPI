@@ -4,7 +4,7 @@ const userDTO = require("./user.dto");
 const throwHTTPError = require("../../utils/throw-http-error");
 
 module.exports = {
-    profile: async (data) => {
+    getProfile: async (data) => {
         const profile = await User.findByPk(
             data.userId,
             {

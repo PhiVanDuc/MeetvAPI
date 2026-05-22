@@ -159,7 +159,7 @@ module.exports = {
                 id: user.id,
                 accountId: account.id
             },
-            expiresIn: "10m"
+            expiresIn: "5s"
         });
 
         const refreshToken = signJWT({
@@ -243,7 +243,7 @@ module.exports = {
                 id: user.id,
                 accountId: account.id
             },
-            expiresIn: "10m"
+            expiresIn: "5s"
         });
 
         const refreshToken = signJWT({
